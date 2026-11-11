@@ -1,0 +1,40 @@
+{
+  "name": "@typequest/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:seed:build": "tsx scripts/build-seed.ts",
+    "db:seed": "npm run db:seed:build && wrangler d1 execute DB --local --file .generated/seed.sql",
+    "db:seed:remote": "npm run db:seed:build && wrangler d1 execute DB --remote --file .generated/seed.sql",
+    "typecheck": "tsc && tsc -p scripts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "e2e:serve": "npm run db:seed:build && wrangler d1 migrations apply DB --local --persist-to .wrangler/e2e && wrangler d1 execute DB --local --persist-to .wrangler/e2e --file .generated/seed.sql && wrangler dev --port 8788 --persist-to .wrangler/e2e"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.9.1",
+    "@typequest/shared": "*",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.18",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.8.0",
+    "@cloudflare/workers-types": "^5.20261110.1",
+    "@vitest/coverage-istanbul": "~4.1.12",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.0",
+    "vitest": "~4.1.12",
+    "wrangler": "^4.160.1"
+  }
+}

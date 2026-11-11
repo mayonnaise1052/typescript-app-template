@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    // E2E テストと Playwright の設定は Node で実行されます。
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"]
+  },
+  "include": [".", "../playwright.config.ts"]
+}

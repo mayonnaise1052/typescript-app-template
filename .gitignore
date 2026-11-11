@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example
+!.dev.vars.example
+*.log
+.DS_Store
+playwright-report/
+test-results/
+*.tsbuildinfo
+# シード SQL は content から毎回生成します
+apps/api/.generated/

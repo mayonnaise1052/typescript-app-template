@@ -1,0 +1,3 @@
+# ローカル開発用の設定。`npm run setup` が .dev.vars にコピーします。
+# 開発中はブラウザが Vite（5173 番ポート）経由で API を呼ぶため、そのオリジンを許可します。
+ALLOWED_ORIGINS=http://localhost:5173

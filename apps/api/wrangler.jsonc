@@ -1,0 +1,37 @@
+{
+  // Cloudflare Workers の設定ファイル。
+  // API（Hono）とフロントエンド（apps/web をビルドした静的ファイル）を 1 つの Worker として配信します。
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "typequest",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+
+  // 静的ファイルの配信設定。
+  // /api/* だけが Worker（Hono）に届き、それ以外は静的ファイルとして直接返されます。
+  // 存在しないパスは index.html を返す（React Router がブラウザ側で経路を解決するため）。
+  "assets": {
+    "directory": "../web/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+
+  // D1（SQLite 互換のデータベース）。
+  // デプロイ前に `npx wrangler d1 create typequest` を実行し、表示された database_id に置き換えてください。
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "typequest",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+
+  // 秘密ではない設定値。ローカル開発では .dev.vars の値で上書きされます。
+  "vars": {
+    // 状態を変更するリクエストを許可する追加のオリジン（カンマ区切り）。
+    // 同一オリジンは常に許可されるので、本番では通常は空のままで構いません。
+    "ALLOWED_ORIGINS": "",
+  },
+
+  "observability": { "enabled": true },
+}

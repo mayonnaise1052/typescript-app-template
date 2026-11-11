@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // どの実行環境（ブラウザ / Workers / Node）でも動くよう、環境固有の型は入れません。
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["src", "vitest.config.ts"]
+}

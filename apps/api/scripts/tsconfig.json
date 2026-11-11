@@ -1,0 +1,9 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    // scripts/ は Workers ではなく Node で実行するので、Node の型を使います。
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": ["."]
+}

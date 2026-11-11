@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Workers はブラウザでも Node でもない実行環境なので、DOM ではなく Workers 用の型を読み込みます。
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-plugin/types"]
+  },
+  "include": ["src", "test", "vitest.config.ts", "drizzle.config.ts"]
+}

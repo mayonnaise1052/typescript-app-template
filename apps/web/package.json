@@ -1,0 +1,39 @@
+{
+  "name": "@typequest/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc && tsc -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.107.0",
+    "@typequest/api": "*",
+    "@typequest/shared": "*",
+    "hono": "^4.13.18",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^8.5.0",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "@vitest/coverage-v8": "~4.1.12",
+    "jsdom": "^31.0.0",
+    "msw": "^3.0.0",
+    "vite": "^8.3.0",
+    "vitest": "~4.1.12"
+  }
+}

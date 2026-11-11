@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.wrangler
+apps/api/migrations
+apps/api/.generated
+package-lock.json
+playwright-report
+test-results

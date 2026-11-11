@@ -1,0 +1,30 @@
+{
+  // 全ワークスペース共通のコンパイラ設定。
+  // 各パッケージの tsconfig.json が "extends" でこれを継承し、実行環境ごとの差分（lib / types）だけを足します。
+  // 解説: docs/learning-guide.md の「tsconfig の読み方」
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+
+    // --- 厳格さ: 商用コードでは基本すべて有効にします ---
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    // --- モジュールの扱い ---
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // ビルドは Vite / Wrangler(esbuild) が行うので、tsc は型チェック専用です。
+    "noEmit": true,
+    "skipLibCheck": true
+  }
+}
