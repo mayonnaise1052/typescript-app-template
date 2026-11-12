@@ -37,6 +37,10 @@ npm run dev     # 開発サーバーの起動
 | Vite         | <http://localhost:5173> | フロントエンド。`/api` を下の API へ転送 |
 | wrangler dev | <http://localhost:8787> | API。Workers と D1 を手元で再現          |
 
+## デプロイ
+
+Cloudflare Workers に、API とフロントエンドを 1 つの Worker としてデプロイします。GitHub と連携した Workers Builds を使う場合は、デプロイ コマンドに `npm run deploy` を設定すると、`main` へのプッシュごとに自動でデプロイされます。手順は [docs/deploy.md](docs/deploy.md) を参照してください。
+
 ## よく使うコマンド
 
 | コマンド                | 内容                                               |
