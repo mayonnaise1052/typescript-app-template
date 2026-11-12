@@ -2,7 +2,7 @@
   // Cloudflare Workers の設定ファイル。
   // API（Hono）とフロントエンド（apps/web をビルドした静的ファイル）を 1 つの Worker として配信します。
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "typequest",
+  "name": "typescript-app-template",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
 
@@ -16,12 +16,13 @@
   },
 
   // D1（SQLite 互換のデータベース）。
-  // デプロイ前に `npx wrangler d1 create typequest` を実行し、表示された database_id に置き換えてください。
+  // database_id を書いていないので、初回の `wrangler deploy` が "typequest" という名前の
+  // データベースを自動で作成して Worker に紐付けます。2 回目以降は同じものを使い続けます。
+  // ローカル開発とテストでは、手元に作られる D1 が使われます。
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "typequest",
-      "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations",
     },
   ],
