@@ -39,7 +39,7 @@ npm run dev     # 開発サーバーの起動
 
 ## デプロイ
 
-Cloudflare Workers に、API とフロントエンドを 1 つの Worker としてデプロイします。GitHub と連携した Workers Builds を使う場合は、デプロイ コマンドに `npm run deploy` を設定すると、`main` へのプッシュごとに自動でデプロイされます。手順は [docs/deploy.md](docs/deploy.md) を参照してください。
+Cloudflare Workers に、API とフロントエンドを 1 つの Worker としてデプロイします。GitHub と連携した Workers Builds を使う場合は、デプロイ コマンドを初回だけ `npm run deploy:init`、2 回目以降は `npm run deploy` にすると、`main` へのプッシュごとに自動でデプロイされます（初回はデータベースの自動作成を先に行うため、順序の違うコマンドを使います）。手順は [docs/deploy.md](docs/deploy.md) を参照してください。
 
 ## よく使うコマンド
 
