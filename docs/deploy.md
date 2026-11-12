@@ -21,6 +21,17 @@ API（Hono）とフロントエンド（ビルドした静的ファイル）を�
 
 `main` にプッシュするたびに、Cloudflare が自動でデプロイします。画面の文言は、表示言語や Cloudflare の更新によって多少異なることがあります。
 
+### 0. （推奨）D1 データベースを東アジアに作っておく
+
+自動作成に任せると、データベースは Cloudflare が選んだ地域（多くはアメリカ）に作られ、日本からの操作が遅くなります。先に東アジア向けで作っておけば、デプロイ時にそれが使われます。
+
+```bash
+npx wrangler login
+npx wrangler d1 create typequest-apac --location apac
+```
+
+Cloudflare のダッシュボード（「ストレージとデータベース」→「D1」→「作成」）でも、場所に「アジア太平洋」を選んで同じ名前で作れます。作っておいた場合も、初回のデプロイ コマンドは `npm run deploy:init` のままで構いません。
+
 ### 1. GitHub: Cloudflare のアプリにリポジトリへのアクセスを許可する
 
 GitHub の「Settings」→「Applications」→「Cloudflare Workers and Pages」→「Configure」を開きます。「Repository access」で「All repositories」を選ぶか、「Only select repositories」でこのリポジトリを追加します。
@@ -56,7 +67,7 @@ Worker の「設定」→「ビルド」で、次を確認します。
 
 ### 4. 初回デプロイ後: デプロイ コマンドを切り替える
 
-初回のビルドが成功したら（D1 データベース `typequest` が作られ、テーブルと教材が入ります）、デプロイ コマンドを **`npm run deploy`** に変更します。以後はマイグレーションがデプロイより先に実行されます。
+初回のビルドが成功したら（D1 データベース `typequest-apac` が作られ、テーブルと教材が入ります）、デプロイ コマンドを **`npm run deploy`** に変更します。以後はマイグレーションがデプロイより先に実行されます。
 
 ### 5. 動作確認
 
