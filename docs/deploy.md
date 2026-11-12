@@ -5,9 +5,17 @@ API（Hono）とフロントエンド（ビルドした静的ファイル）を�
 `npm run deploy` 1 回で、次のすべてが行われます。
 
 1. フロントエンドをビルドする（`apps/web/dist`）
-2. `wrangler deploy` で Worker をデプロイする。初回は D1 データベース `typequest` が自動で作成され、Worker に紐付けられる
-3. 本番の D1 にマイグレーションを適用する
-4. 教材（レッスンと問題）を本番の D1 に投入する（何度実行しても同じ結果になる）
+2. 本番の D1 にマイグレーションを適用する
+3. `wrangler deploy` で Worker をデプロイする
+4. 教材（レッスンと問題）を本番の D1 に同期する（何度実行しても同じ結果になる）
+
+マイグレーションをデプロイより先に行うのは、新しいコードが古いテーブル構造のまま動く時間を作らないためです。そのため、マイグレーションは「古いコードのままでも壊れない」形で書きます（列の追加は可、列の削除や名前の変更は 2 回のデプロイに分ける）。
+
+教材はコードと一緒に Git で管理している「参照用のデータ」なので、デプロイのたびに同期しています。ユーザーの進捗やノートには影響しません。
+
+### 初回だけは `npm run deploy:init`
+
+初回は D1 データベースがまだ存在しないため、マイグレーションを先に実行できません。最初の 1 回だけ、順序の違う `npm run deploy:init` を使います（デプロイで D1 を自動作成 → マイグレーション → 教材の投入）。Workers Builds で初めてデプロイするときは、デプロイ コマンドを一時的に `npm run deploy:init` にし、成功したら `npm run deploy` に戻してください。
 
 ## 方法 A: GitHub と連携して自動でデプロイする（Workers Builds）
 
@@ -27,8 +35,9 @@ Cloudflare のダッシュボードで、Worker `typescript-app-template` の「
 ## 方法 B: 手元の PC からデプロイする
 
 ```bash
-npx wrangler login   # ブラウザで Cloudflare にログイン
-npm run deploy
+npx wrangler login       # ブラウザで Cloudflare にログイン
+npm run deploy:init      # 初回のみ
+npm run deploy           # 2 回目以降
 ```
 
 ## 更新するとき

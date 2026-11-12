@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy && npm run db:migrate:remote && npm run db:seed:remote",
+    "deploy": "npm run db:migrate:remote && wrangler deploy && npm run db:seed:remote",
+    "deploy:init": "wrangler deploy && npm run db:migrate:remote && npm run db:seed:remote",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",

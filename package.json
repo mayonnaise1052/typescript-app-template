@@ -16,6 +16,7 @@
     "dev": "concurrently -n api,web -c blue,green \"npm run dev -w @typequest/api\" \"npm run dev -w @typequest/web\"",
     "build": "npm run build -w @typequest/web",
     "deploy": "npm run build && npm run deploy -w @typequest/api",
+    "deploy:init": "npm run build && npm run deploy:init -w @typequest/api",
     "db:generate": "npm run db:generate -w @typequest/api",
     "db:migrate": "npm run db:migrate -w @typequest/api",
     "db:seed": "npm run db:seed -w @typequest/api",
