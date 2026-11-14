@@ -8,6 +8,12 @@ import {
 } from '@typequest/shared';
 import { useState, type SubmitEvent } from 'react';
 import { ErrorMessage } from '../../components/Feedback';
+import { CodeBlock } from '../../components/CodeBlock';
+import { Button } from '../../components/ui/button';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Input } from '../../components/ui/input';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
+import { cn } from '../../lib/utils';
 import { RichText } from '../../components/RichText';
 
 type QuizFormProps = {
@@ -49,7 +55,7 @@ export function QuizForm({
   const resultById = new Map(result?.results.map((item) => [item.questionId, item]));
 
   return (
-    <form onSubmit={handleSubmit} className="quiz">
+    <form onSubmit={handleSubmit} className="grid justify-items-start gap-5">
       {questions.map((question, index) => (
         <QuestionField
           key={question.id}
@@ -65,7 +71,13 @@ export function QuizForm({
       {error !== null && error !== undefined && <ErrorMessage error={error} />}
 
       {result ? (
-        <div className={result.passed ? 'quiz-summary passed' : 'quiz-summary'} role="status">
+        <div
+          className={cn(
+            'flex w-full flex-wrap items-center justify-between gap-3 rounded-lg px-5 py-4',
+            result.passed ? 'bg-success-soft' : 'bg-muted',
+          )}
+          role="status"
+        >
           <p>
             <strong>
               {result.total} 問中 {result.score} 問正解
@@ -74,14 +86,12 @@ export function QuizForm({
               ? ' — 全問正解です。このレッスンは完了しました。'
               : ' — 解説を読んで、もう一度挑戦してみましょう。'}
           </p>
-          <button type="button" className="button" onClick={handleRetry}>
-            もう一度挑戦する
-          </button>
+          <Button onClick={handleRetry}>もう一度挑戦する</Button>
         </div>
       ) : (
-        <button type="submit" className="button primary" disabled={isSubmitting}>
+        <Button type="submit" variant="primary" disabled={isSubmitting}>
           {isSubmitting ? '採点中…' : '解答する'}
-        </button>
+        </Button>
       )}
     </form>
   );
@@ -105,52 +115,61 @@ function QuestionField({
   onChange,
 }: QuestionFieldProps) {
   return (
-    <fieldset className="question" disabled={disabled}>
-      <legend>
-        <span className="question-number">Q{number}</span>
+    <fieldset
+      className="w-full min-w-0 rounded-lg border bg-card px-5 pt-4 pb-5"
+      disabled={disabled}
+    >
+      <legend className="float-left mb-3 w-full font-semibold">
+        <span className="mr-2 text-primary">Q{number}</span>
         <RichText text={question.prompt} />
       </legend>
-      {question.code && (
-        <pre className="question-code">
-          <code>{question.code}</code>
-        </pre>
-      )}
-      <QuestionInput question={question} answer={answer} onChange={onChange} />
-      {result && <ResultView question={question} result={result} />}
+      <div className="clear-both">
+        {question.code && <CodeBlock code={question.code} className="mb-4" />}
+        <QuestionInput
+          question={question}
+          answer={answer}
+          disabled={disabled}
+          onChange={onChange}
+        />
+        {result && <ResultView question={question} result={result} />}
+      </div>
     </fieldset>
   );
 }
 
+const choiceLabelClass =
+  'flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2.5 has-data-checked:border-primary has-data-checked:bg-accent';
+
 function QuestionInput({
   question,
   answer,
+  disabled,
   onChange,
-}: Pick<QuestionFieldProps, 'question' | 'answer' | 'onChange'>) {
+}: Pick<QuestionFieldProps, 'question' | 'answer' | 'disabled' | 'onChange'>) {
   const questionId = question.id;
 
   // 問題の種類ごとに入力欄を出し分けます。判別可能ユニオンなので、
   // 各 case の中では question.choices などに安全にアクセスできます。
   switch (question.kind) {
     case 'single-choice': {
-      const selected = answer?.kind === 'single-choice' ? answer.selectedIndex : undefined;
+      const selected = answer?.kind === 'single-choice' ? answer.selectedIndex : null;
       return (
-        <ul className="choices">
+        <RadioGroup
+          value={selected}
+          disabled={disabled}
+          onValueChange={(value) => {
+            if (typeof value === 'number') {
+              onChange({ questionId, kind: 'single-choice', selectedIndex: value });
+            }
+          }}
+        >
           {question.choices.map((choice, index) => (
-            <li key={index}>
-              <label>
-                <input
-                  type="radio"
-                  name={questionId}
-                  checked={selected === index}
-                  onChange={() =>
-                    onChange({ questionId, kind: 'single-choice', selectedIndex: index })
-                  }
-                />
-                <code>{choice}</code>
-              </label>
-            </li>
+            <label key={index} className={choiceLabelClass}>
+              <RadioGroupItem value={index} />
+              <code className="font-mono text-sm">{choice}</code>
+            </label>
           ))}
-        </ul>
+        </RadioGroup>
       );
     }
     case 'multiple-choice': {
@@ -165,17 +184,19 @@ function QuestionInput({
         });
       return (
         <>
-          <p className="field-hint">当てはまるものをすべて選んでください。</p>
-          <ul className="choices">
+          <p className="mb-2 text-sm text-muted-foreground">
+            当てはまるものをすべて選んでください。
+          </p>
+          <ul className="grid gap-2">
             {question.choices.map((choice, index) => (
               <li key={index}>
-                <label>
-                  <input
-                    type="checkbox"
+                <label className={choiceLabelClass}>
+                  <Checkbox
                     checked={selected.includes(index)}
-                    onChange={() => toggle(index)}
+                    disabled={disabled}
+                    onCheckedChange={() => toggle(index)}
                   />
-                  <code>{choice}</code>
+                  <code className="font-mono text-sm">{choice}</code>
                 </label>
               </li>
             ))}
@@ -185,10 +206,11 @@ function QuestionInput({
     }
     case 'fill-blank':
       return (
-        <label className="blank-input">
-          <span>空欄（____）に入るコード</span>
-          <input
+        <label className="grid max-w-sm gap-1.5">
+          <span className="text-sm font-semibold">空欄（____）に入るコード</span>
+          <Input
             type="text"
+            className="font-mono"
             autoComplete="off"
             autoCapitalize="off"
             spellCheck={false}
@@ -226,11 +248,18 @@ function describeCorrectAnswer(question: PublicQuestion, result: QuestionResult)
 
 function ResultView({ question, result }: { question: PublicQuestion; result: QuestionResult }) {
   return (
-    <div className={result.correct ? 'result correct' : 'result incorrect'}>
-      <p className="result-verdict">{result.correct ? '✓ 正解' : '✗ 不正解'}</p>
+    <div
+      className={cn(
+        'mt-4 grid gap-1 rounded-md px-4 py-3',
+        result.correct ? 'bg-success-soft' : 'bg-destructive-soft',
+      )}
+    >
+      <p className={cn('font-bold', result.correct ? 'text-success' : 'text-destructive')}>
+        {result.correct ? '✓ 正解' : '✗ 不正解'}
+      </p>
       {!result.correct && (
         <p>
-          正解: <code>{describeCorrectAnswer(question, result)}</code>
+          正解: <code className="font-mono">{describeCorrectAnswer(question, result)}</code>
         </p>
       )}
       <p>

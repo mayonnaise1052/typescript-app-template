@@ -5,7 +5,8 @@ import { queryKeys } from '../../lib/query';
 
 export const NOTES_PAGE_SIZE = 5;
 
-export type NoteListParams = { page: number; q: string; lessonId: string };
+/** 一覧の取得条件。ルートで検証済みの検索条件（NotesSearch）をそのまま渡せる形です。 */
+export type NoteListParams = { page: number; q: string; lessonId?: string | undefined };
 
 export function useNotes(params: NoteListParams) {
   return useQuery({

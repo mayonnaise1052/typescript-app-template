@@ -1,60 +1,80 @@
-import { LoginInputSchema, type LoginInput } from '@typequest/shared';
-import { useState, type SubmitEvent } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link, useRouter } from '@tanstack/react-router';
+import { LoginInputSchema } from '@typequest/shared';
+import { useForm } from 'react-hook-form';
+import type { z } from 'zod';
 import { ErrorMessage } from '../../components/Feedback';
 import { TextField } from '../../components/TextField';
-import { toFormErrors, validateForm, type FormErrors } from '../../lib/form';
-import { redirectTarget } from './redirect';
+import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
+import { applyServerErrors } from '../../lib/form';
 import { useLogin } from './useAuth';
 
 export function LoginPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
   const login = useLogin();
-  const [errors, setErrors] = useState<FormErrors<LoginInput>>({});
 
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
+  /**
+   * React Hook Form: 入力値・検証・送信中の状態をまとめて管理します。
+   * 型引数は「入力中の値の型」「（未使用）」「検証後の値の型」で、どちらもスキーマから導出します。
+   * zodResolver に API と同じスキーマを渡すので、画面と API で検証のルールが食い違いません。
+   */
+  const form = useForm<
+    z.input<typeof LoginInputSchema>,
+    unknown,
+    z.output<typeof LoginInputSchema>
+  >({
+    resolver: zodResolver(LoginInputSchema),
+    defaultValues: { email: '', password: '' },
+  });
+  const { errors } = form.formState;
 
-    const result = validateForm(LoginInputSchema, values);
-    if (!result.ok) {
-      setErrors(result.error);
-      return;
+  // handleSubmit は検証に通ったときだけ呼ばれ、values は検証・変換後の値（メールアドレスは小文字）です。
+  const onSubmit = form.handleSubmit(async (values) => {
+    try {
+      await login.mutateAsync(values);
+      // ログイン状態が変わったので、ルーターに「ログイン済みなら戻り先へ」の確認をやり直させます。
+      await router.invalidate();
+    } catch (error) {
+      applyServerErrors(error, form.setError, ['email', 'password']);
     }
-    setErrors({});
-    login.mutate(result.value, {
-      onSuccess: () => void navigate(redirectTarget(location.state), { replace: true }),
-      onError: (error) => setErrors(toFormErrors(error)),
-    });
-  }
+  });
 
   return (
-    <main className="auth-page">
-      <h1>ログイン</h1>
-      <form onSubmit={handleSubmit} noValidate className="card form">
-        {errors._form && <ErrorMessage>{errors._form}</ErrorMessage>}
-        <TextField
-          label="メールアドレス"
-          name="email"
-          type="email"
-          autoComplete="email"
-          error={errors.email}
-        />
-        <TextField
-          label="パスワード"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          error={errors.password}
-        />
-        <button type="submit" className="button primary" disabled={login.isPending}>
-          {login.isPending ? 'ログイン中…' : 'ログイン'}
-        </button>
-      </form>
-      <p className="auth-switch">
-        アカウントをお持ちでない方は <Link to="/register">新規登録</Link>
+    <>
+      <h1 className="mb-6 text-center text-2xl font-bold">ログイン</h1>
+      <Card>
+        <form onSubmit={onSubmit} noValidate className="grid gap-4">
+          {errors.root?.server && <ErrorMessage>{errors.root.server.message}</ErrorMessage>}
+          <TextField
+            label="メールアドレス"
+            type="email"
+            autoComplete="email"
+            error={errors.email?.message}
+            {...form.register('email')}
+          />
+          <TextField
+            label="パスワード"
+            type="password"
+            autoComplete="current-password"
+            error={errors.password?.message}
+            {...form.register('password')}
+          />
+          <Button type="submit" variant="primary" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? 'ログイン中…' : 'ログイン'}
+          </Button>
+        </form>
+      </Card>
+      <p className="mt-5 text-center text-muted-foreground">
+        アカウントをお持ちでない方は{' '}
+        <Link
+          to="/register"
+          search={(prev) => prev}
+          className="text-primary underline underline-offset-4"
+        >
+          新規登録
+        </Link>
       </p>
-    </main>
+    </>
   );
 }

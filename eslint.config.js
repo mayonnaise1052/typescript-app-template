@@ -17,6 +17,8 @@ export default tseslint.config(
       '**/coverage/',
       '**/.wrangler/',
       '**/.vitest/',
+      // TanStack Router が自動生成するファイル
+      'apps/web/src/routeTree.gen.ts',
       '**/.generated/',
       'apps/api/migrations/',
       'playwright-report/',
@@ -50,6 +52,11 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       // `() => setValue(x)` のような短い書き方を許可します。
       '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],
+      // TanStack Router は、画面の移動を `throw redirect(...)` で表します（Error ではなく Response）。
+      '@typescript-eslint/only-throw-error': [
+        'error',
+        { allow: [{ from: 'package', package: '@tanstack/router-core', name: 'Redirect' }] },
+      ],
       // onClick などに async 関数を直接渡すのは React では一般的なので、属性では許可します。
       '@typescript-eslint/no-misused-promises': [
         'error',

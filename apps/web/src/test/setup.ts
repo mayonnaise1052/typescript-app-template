@@ -2,6 +2,8 @@
 import 'vitest-browser-react';
 import { afterAll, afterEach, beforeAll, expect } from 'vitest';
 import { worker } from './server';
+// 本物のブラウザで動かすので、見た目（大きさ・重なり・表示/非表示）も本番と同じ CSS で検証します。
+import '../styles.css';
 
 /** 偽の応答を登録していないのに呼ばれた API。テストの最後に空であることを確かめます。 */
 const unhandledApiRequests: string[] = [];

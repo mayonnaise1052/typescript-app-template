@@ -93,7 +93,7 @@ npm run deploy           # 2 回目以降
 `apps/api/wrangler.jsonc` の `assets` の設定により、リクエストは次のように振り分けられます。
 
 - `/api/*` → Worker（Hono）が処理
-- それ以外 → `apps/web/dist` の静的ファイルを返す。該当するファイルがなければ `index.html`（画面の経路は React Router がブラウザ側で解決するため）
+- それ以外 → `apps/web/dist` の静的ファイルを返す。該当するファイルがなければ `index.html`（画面の経路は TanStack Router がブラウザ側で解決するため）
 
 フロントと API が同じオリジンになるので、CORS の設定は不要で、Cookie もそのまま使えます。
 

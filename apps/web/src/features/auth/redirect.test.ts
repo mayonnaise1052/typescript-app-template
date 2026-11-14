@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { redirectTarget } from './redirect';
+import { GuestSearchSchema } from './redirect';
 
-describe('redirectTarget', () => {
-  it('アプリ内のパスならそこへ戻す', () => {
-    expect(redirectTarget({ from: '/notes' })).toBe('/notes');
+describe('GuestSearchSchema（ログイン後の戻り先）', () => {
+  it('アプリ内のパスならそのまま使う', () => {
+    expect(GuestSearchSchema.parse({ redirect: '/notes?page=2' })).toEqual({
+      redirect: '/notes?page=2',
+    });
   });
 
   it.each([
-    ['state がない', null],
-    ['from がない', {}],
-    ['from が文字列でない', { from: 42 }],
-    ['外部サイトの URL', { from: 'https://evil.example/' }],
-    ['プロトコル相対 URL', { from: '//evil.example/' }],
-  ])('%s ときはトップへ送る', (_label, state) => {
-    expect(redirectTarget(state)).toBe('/');
+    ['指定がない', {}],
+    ['文字列でない', { redirect: 42 }],
+    ['外部サイトの URL', { redirect: 'https://evil.example/' }],
+    ['プロトコル相対 URL', { redirect: '//evil.example/' }],
+    ['相対パス', { redirect: 'notes' }],
+  ])('%s ときは戻り先なしとして扱う', (_label, search) => {
+    expect(GuestSearchSchema.parse(search)).toEqual({ redirect: undefined });
   });
 });

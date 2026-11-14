@@ -1,13 +1,15 @@
-import type { ComponentPropsWithoutRef } from 'react';
-import { FieldError } from './Feedback';
+import type { ComponentProps } from 'react';
+import { FieldError, FieldHint } from './Feedback';
+import { Input, Label } from './ui/input';
 
 /**
- * ラベル・入力欄・エラー表示をまとめた部品。
+ * ラベル・入力欄・補足・エラー表示をまとめた部品。
  *
- * `ComponentPropsWithoutRef<'input'>` は <input> が受け取れる全属性の型です。
- * 交差型（&）で独自の props を足し、残りは `...rest` でそのまま <input> に渡します。
+ * `ComponentProps<'input'>` は <input> が受け取れる全属性の型です。交差型（&）で独自の props を足し、
+ * 残りは `...rest` でそのまま入力欄に渡します。React Hook Form の `register('email')` が返す
+ * name / ref / onChange / onBlur も、この `...rest` を通って入力欄に届きます。
  */
-type TextFieldProps = ComponentPropsWithoutRef<'input'> & {
+type TextFieldProps = ComponentProps<'input'> & {
   label: string;
   name: string;
   error?: string | undefined;
@@ -21,20 +23,16 @@ export function TextField({ label, name, error, hint, ...rest }: TextFieldProps)
   const describedBy = [error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ');
 
   return (
-    <div className="field">
-      <label htmlFor={name}>{label}</label>
-      <input
+    <div className="grid gap-1.5">
+      <Label htmlFor={name}>{label}</Label>
+      <Input
         id={name}
         name={name}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy || undefined}
         {...rest}
       />
-      {hint && (
-        <p className="field-hint" id={hintId}>
-          {hint}
-        </p>
-      )}
+      {hint && <FieldHint id={hintId}>{hint}</FieldHint>}
       <FieldError id={errorId} message={error} />
     </div>
   );

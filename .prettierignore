@@ -8,3 +8,4 @@ package-lock.json
 playwright-report
 test-results
 .vitest
+apps/web/src/routeTree.gen.ts

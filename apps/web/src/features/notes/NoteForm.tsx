@@ -1,106 +1,105 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   CreateNoteInputSchema,
   NOTE_BODY_MAX,
   NOTE_TITLE_MAX,
-  type CreateNoteInput,
   type LessonSummary,
   type Note,
 } from '@typequest/shared';
-import { useState, type SubmitEvent } from 'react';
+import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import { ErrorMessage, FieldError } from '../../components/Feedback';
 import { TextField } from '../../components/TextField';
-import { toFormErrors, validateForm, type FormErrors } from '../../lib/form';
+import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
+import { Label, NativeSelect, Textarea } from '../../components/ui/input';
+import { applyServerErrors } from '../../lib/form';
 
-/** 検証を通過した後の値の型（lessonId は必ず string | null になっている）。 */
-export type NoteFormValues = z.infer<typeof CreateNoteInputSchema>;
+/** 入力中の値の型（lessonId は省略できる）と、検証後の値の型（lessonId は string | null）。 */
+type NoteFormInput = z.input<typeof CreateNoteInputSchema>;
+export type NoteFormValues = z.output<typeof CreateNoteInputSchema>;
 
 type NoteFormProps = {
   /** 編集時は既存のノートを渡します。省略すると新規作成のフォームになります。 */
   initial?: Pick<Note, 'title' | 'body' | 'lessonId'>;
   lessons: readonly LessonSummary[];
-  isSubmitting: boolean;
-  submitError: unknown;
-  onSubmit: (values: NoteFormValues) => void;
+  /** 保存の処理。失敗したら例外を投げてください（API のエラーを各入力欄に表示します）。 */
+  onSubmit: (values: NoteFormValues) => Promise<void>;
   onCancel: () => void;
 };
 
-export function NoteForm({
-  initial,
-  lessons,
-  isSubmitting,
-  submitError,
-  onSubmit,
-  onCancel,
-}: NoteFormProps) {
-  const [errors, setErrors] = useState<FormErrors<CreateNoteInput>>({});
-  // サーバーから返ったエラーは、入力時のエラーがないときにだけ表示します。
-  const serverErrors: FormErrors<CreateNoteInput> =
-    submitError !== null && submitError !== undefined ? toFormErrors(submitError) : {};
-  const shown = { ...serverErrors, ...errors };
+export function NoteForm({ initial, lessons, onSubmit, onCancel }: NoteFormProps) {
+  // API と同じスキーマで検証します（packages/shared/src/schemas/note.ts）。
+  const form = useForm<NoteFormInput, unknown, NoteFormValues>({
+    resolver: zodResolver(CreateNoteInputSchema),
+    defaultValues: {
+      title: initial?.title ?? '',
+      body: initial?.body ?? '',
+      lessonId: initial?.lessonId ?? null,
+    },
+  });
+  const { errors, isSubmitting } = form.formState;
 
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-
-    // API と同じスキーマで検証します（packages/shared/src/schemas/note.ts）。
-    const result = validateForm(CreateNoteInputSchema, {
-      title: data.get('title'),
-      body: data.get('body'),
-      // 「指定しない」を選ぶと空文字が届くので、null に読み替えます。
-      lessonId: data.get('lessonId') === '' ? null : data.get('lessonId'),
-    });
-    if (!result.ok) {
-      setErrors(result.error);
-      return;
+  const submit = form.handleSubmit(async (values) => {
+    try {
+      await onSubmit(values);
+    } catch (error) {
+      // 例: 存在しないレッスン → 「関連するレッスン」の欄にエラーを表示します。
+      applyServerErrors(error, form.setError, ['title', 'body', 'lessonId']);
     }
-    setErrors({});
-    onSubmit(result.value);
-  }
+  });
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="card form note-form">
-      {shown._form && <ErrorMessage>{shown._form}</ErrorMessage>}
-      <TextField
-        label="タイトル"
-        name="title"
-        defaultValue={initial?.title}
-        maxLength={NOTE_TITLE_MAX}
-        error={shown.title}
-      />
-      <div className="field">
-        <label htmlFor="body">本文</label>
-        <textarea
-          id="body"
-          name="body"
-          rows={5}
-          defaultValue={initial?.body}
-          maxLength={NOTE_BODY_MAX}
-          aria-invalid={shown.body ? true : undefined}
-          aria-describedby={shown.body ? 'body-error' : undefined}
+    <Card className="mb-6">
+      <form onSubmit={submit} noValidate className="grid gap-4">
+        {errors.root?.server && <ErrorMessage>{errors.root.server.message}</ErrorMessage>}
+        <TextField
+          label="タイトル"
+          maxLength={NOTE_TITLE_MAX}
+          error={errors.title?.message}
+          {...form.register('title')}
         />
-        <FieldError id="body-error" message={shown.body} />
-      </div>
-      <div className="field">
-        <label htmlFor="lessonId">関連するレッスン（任意）</label>
-        <select id="lessonId" name="lessonId" defaultValue={initial?.lessonId ?? ''}>
-          <option value="">指定しない</option>
-          {lessons.map((lesson) => (
-            <option key={lesson.id} value={lesson.id}>
-              {lesson.title}
-            </option>
-          ))}
-        </select>
-        <FieldError id="lessonId-error" message={shown.lessonId} />
-      </div>
-      <div className="form-actions">
-        <button type="submit" className="button primary" disabled={isSubmitting}>
-          {isSubmitting ? '保存中…' : '保存する'}
-        </button>
-        <button type="button" className="button ghost" onClick={onCancel}>
-          キャンセル
-        </button>
-      </div>
-    </form>
+        <div className="grid gap-1.5">
+          <Label htmlFor="body">本文</Label>
+          <Textarea
+            id="body"
+            rows={5}
+            maxLength={NOTE_BODY_MAX}
+            aria-invalid={errors.body ? true : undefined}
+            aria-describedby={errors.body ? 'body-error' : undefined}
+            {...form.register('body')}
+          />
+          <FieldError id="body-error" message={errors.body?.message} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="lessonId">関連するレッスン（任意）</Label>
+          <NativeSelect
+            id="lessonId"
+            aria-invalid={errors.lessonId ? true : undefined}
+            aria-describedby={errors.lessonId ? 'lessonId-error' : undefined}
+            // 「指定しない」は空文字で届くので、送信前に null へ読み替えます。
+            {...form.register('lessonId', {
+              setValueAs: (value: string) => (value === '' ? null : value),
+            })}
+          >
+            <option value="">指定しない</option>
+            {lessons.map((lesson) => (
+              <option key={lesson.id} value={lesson.id}>
+                {lesson.title}
+              </option>
+            ))}
+          </NativeSelect>
+          <FieldError id="lessonId-error" message={errors.lessonId?.message} />
+        </div>
+        <div className="flex gap-2">
+          <Button type="submit" variant="primary" disabled={isSubmitting}>
+            {isSubmitting ? '保存中…' : '保存する'}
+          </Button>
+          <Button variant="ghost" onClick={onCancel}>
+            キャンセル
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }

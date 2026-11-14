@@ -1,8 +1,9 @@
 import { http, HttpResponse } from 'msw';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderWithProviders } from '../../test/render';
+import { page } from 'vitest/browser';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { authHandlers, testLesson } from '../../test/fixtures';
+import { renderApp } from '../../test/render';
 import { worker } from '../../test/server';
-import { NotesPage } from './NotesPage';
 
 type StoredNote = {
   id: string;
@@ -11,15 +12,6 @@ type StoredNote = {
   body: string;
   createdAt: string;
   updatedAt: string;
-};
-
-const lesson = {
-  id: 'generics',
-  chapterId: 'intermediate',
-  order: 8,
-  title: 'ジェネリクス',
-  summary: '',
-  completed: false,
 };
 
 /** テストごとに作り直す、メモリ上の偽のバックエンド。 */
@@ -40,14 +32,15 @@ beforeEach(() => {
   lastQuery = new URLSearchParams();
 
   worker.use(
-    http.get('*/api/lessons', () => HttpResponse.json({ lessons: [lesson] })),
+    authHandlers.signedIn(),
+    http.get('*/api/lessons', () => HttpResponse.json({ lessons: [testLesson] })),
     http.get('*/api/notes', ({ request }) => {
       lastQuery = new URL(request.url).searchParams;
       const q = lastQuery.get('q') ?? '';
       const items = notes.filter((note) => note.title.includes(q));
       return HttpResponse.json({
         items,
-        page: 1,
+        page: Number(lastQuery.get('page')),
         pageSize: 5,
         totalItems: items.length,
         totalPages: 1,
@@ -71,20 +64,18 @@ beforeEach(() => {
   );
 });
 
-describe('NotesPage', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+/** 画面を描画し、最初のノートが表示されるまで待ちます。 */
+async function renderNotes(url = '/notes') {
+  const rendered = await renderApp(url);
+  await expect
+    .element(rendered.screen.getByRole('heading', { name: '型引数のメモ' }))
+    .toBeVisible();
+  return rendered;
+}
 
-  /** 画面を描画し、最初のノートが表示されるまで待ちます。 */
-  async function renderNotes() {
-    const screen = await renderWithProviders(<NotesPage />, { route: '/notes' });
-    await expect.element(screen.getByRole('heading', { name: '型引数のメモ' })).toBeVisible();
-    return screen;
-  }
-
+describe('ノート画面', () => {
   it('ノートの一覧を表示する', async () => {
-    const screen = await renderNotes();
+    const { screen } = await renderNotes();
 
     await expect.element(screen.getByText('T は型の引数')).toBeVisible();
     await expect
@@ -92,8 +83,8 @@ describe('NotesPage', () => {
       .toHaveAttribute('href', '/lessons/generics');
   });
 
-  it('新しいノートを作成すると一覧に追加される', async () => {
-    const screen = await renderNotes();
+  it('新しいノートを作成すると一覧に追加され、通知が表示される', async () => {
+    const { screen } = await renderNotes();
 
     await screen.getByRole('button', { name: '新しいノート' }).click();
     await screen.getByLabelText('タイトル').fill('satisfies のメモ');
@@ -101,12 +92,14 @@ describe('NotesPage', () => {
     await screen.getByRole('button', { name: '保存する' }).click();
 
     await expect.element(screen.getByRole('heading', { name: 'satisfies のメモ' })).toBeVisible();
+    // 通知（トースト）は画面の端に表示されるので、ページ全体から探します。
+    await expect.element(page.getByText('ノートを保存しました')).toBeVisible();
     // 保存に成功したらフォームが閉じる
     await expect.element(screen.getByLabelText('タイトル')).not.toBeInTheDocument();
   });
 
   it('タイトルが空なら保存せず、エラーを表示する', async () => {
-    const screen = await renderNotes();
+    const { screen } = await renderNotes();
 
     await screen.getByRole('button', { name: '新しいノート' }).click();
     await screen.getByRole('button', { name: '保存する' }).click();
@@ -115,26 +108,80 @@ describe('NotesPage', () => {
     expect(notes).toHaveLength(1);
   });
 
-  it('検索語を API に渡し、結果がなければその旨を表示する', async () => {
-    const screen = await renderNotes();
+  it('API が返した項目ごとのエラーを、該当する入力欄に表示する', async () => {
+    worker.use(
+      http.post('*/api/notes', () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: '入力内容を確認してください',
+              details: { lessonId: ['指定されたレッスンは存在しません'] },
+            },
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    const { screen } = await renderNotes();
+
+    await screen.getByRole('button', { name: '新しいノート' }).click();
+    await screen.getByLabelText('タイトル').fill('メモ');
+    await screen.getByLabelText('本文').fill('本文');
+    await screen.getByRole('button', { name: '保存する' }).click();
+
+    await expect.element(screen.getByText('指定されたレッスンは存在しません')).toBeVisible();
+    await expect
+      .element(screen.getByLabelText('関連するレッスン（任意）'))
+      .toHaveAttribute('aria-invalid', 'true');
+    await expect.element(screen.getByText('入力内容を確認してください')).toBeVisible();
+  });
+
+  it('検索語を API に渡し、URL にも反映する。結果がなければその旨を表示する', async () => {
+    const { screen, router } = await renderNotes();
 
     await screen.getByRole('searchbox', { name: 'ノートを検索' }).fill('存在しない');
     await screen.getByRole('button', { name: '検索' }).click();
 
     await expect.element(screen.getByText('条件に一致するノートはありません。')).toBeVisible();
     expect(lastQuery.get('q')).toBe('存在しない');
+    // 既定値（page: 1）は URL に書かない設定なので、検索語だけが残る
+    expect(router.state.location.search).toEqual({ q: '存在しない' });
+    expect(router.state.location.href).toBe(`/notes?q=${encodeURIComponent('存在しない')}`);
   });
 
-  it('確認ダイアログで OK すると削除する', async () => {
-    // 本物のブラウザの確認ダイアログは操作を止めてしまうので、「OK」を返す偽物に差し替えます。
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    const screen = await renderNotes();
-    const card = screen.getByRole('listitem').filter({ hasText: '型引数のメモ' });
+  it('不正な検索条件の URL でも、エラーにならず 1 ページ目を表示する', async () => {
+    const { router } = await renderNotes('/notes?page=abc&lessonId=Not%20Valid!');
 
-    await card.getByRole('button', { name: '削除' }).click();
+    expect(lastQuery.get('page')).toBe('1');
+    expect(lastQuery.get('lessonId')).toBeNull();
+    // 不正な値は既定値に置き換わり、既定値は URL に書かれないので、URL は /notes だけになる
+    expect(router.state.location.href).toBe('/notes');
+  });
+
+  it('削除の確認ダイアログで「キャンセル」を押すと、削除しない', async () => {
+    const { screen } = await renderNotes();
+
+    await screen.getByRole('button', { name: '削除' }).click();
+    const dialog = page.getByRole('alertdialog', { name: 'ノートを削除しますか？' });
+    await expect.element(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'キャンセル' }).click();
+
+    await expect.element(dialog).not.toBeInTheDocument();
+    await expect.element(screen.getByRole('heading', { name: '型引数のメモ' })).toBeVisible();
+    expect(notes).toHaveLength(1);
+  });
+
+  it('削除の確認ダイアログで「削除する」を押すと、削除して通知する', async () => {
+    const { screen } = await renderNotes();
+
+    await screen.getByRole('button', { name: '削除' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: '削除する' }).click();
 
     await expect
       .element(screen.getByRole('heading', { name: '型引数のメモ' }))
       .not.toBeInTheDocument();
+    await expect.element(page.getByText('「型引数のメモ」を削除しました')).toBeVisible();
+    expect(notes).toHaveLength(0);
   });
 });

@@ -17,7 +17,18 @@ function uniqueUser() {
   };
 }
 
+/**
+ * API はログイン・登録の試行回数を接続元（CF-Connecting-IP）ごとに制限しています。
+ * E2E ではテストごとに多数のユーザーを登録するので、テストごとに別の接続元として扱わせます。
+ * （本番では Cloudflare がこのヘッダーを実際の接続元で上書きするため、偽装はできません。）
+ */
+async function useDistinctClient(page: Page) {
+  const octet = () => Math.floor(Math.random() * 254) + 1;
+  await page.setExtraHTTPHeaders({ 'CF-Connecting-IP': `10.${octet()}.${octet()}.${octet()}` });
+}
+
 async function register(page: Page, user = uniqueUser()) {
+  await useDistinctClient(page);
   await page.goto('/register');
   await page.getByLabel('表示名').fill(user.displayName);
   await page.getByLabel('メールアドレス').fill(user.email);
@@ -46,7 +57,8 @@ test('登録してレッスンを学び、クイズに合格すると進捗に�
 
   // 進捗がダッシュボードとレッスン一覧に反映されている
   await page.getByRole('link', { name: 'ダッシュボード' }).click();
-  const completed = page.locator('.stat', { hasText: '完了したレッスン' });
+  // 見出し（dt）と値（dd）の組を、CSS のクラス名ではなく役割で探します
+  const completed = page.getByRole('term').filter({ hasText: '完了したレッスン' }).locator('..');
   await expect(completed).toContainText('1');
   await expect(page.getByRole('cell', { name: '2 / 2' })).toBeVisible();
 
@@ -101,10 +113,17 @@ test('ノートを作成・検索・編集・削除できる', async ({ page }) 
   await page.getByRole('button', { name: '保存する' }).click();
   await expect(page.getByRole('heading', { name: 'ジェネリクスのメモ（改）' })).toBeVisible();
 
-  // 削除（確認ダイアログで OK を押す）
-  page.once('dialog', (dialog) => void dialog.accept());
+  // 削除: 確認ダイアログで「キャンセル」なら残り、「削除する」で消える
   await page.getByRole('button', { name: '削除' }).click();
+  const dialog = page.getByRole('alertdialog', { name: 'ノートを削除しますか？' });
+  await dialog.getByRole('button', { name: 'キャンセル' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'ジェネリクスのメモ（改）' })).toBeVisible();
+
+  await page.getByRole('button', { name: '削除' }).click();
+  await dialog.getByRole('button', { name: '削除する' }).click();
   await expect(page.getByRole('heading', { name: 'ジェネリクスのメモ（改）' })).toBeHidden();
+  await expect(page.getByText('「ジェネリクスのメモ（改）」を削除しました')).toBeVisible();
 });
 
 test('ログアウトすると保護された画面に入れず、再ログインで戻れる', async ({ page }) => {
@@ -209,4 +228,34 @@ test('存在しないレッスンを開くとエラーが表示され、メニ�
   await page.getByRole('link', { name: 'レッスン', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'レッスン' })).toBeVisible();
   await expect(page.getByRole('alert')).toBeHidden();
+});
+
+test('ログイン画面の戻り先に外部サイトを指定しても、アプリの外へは移動しない', async ({ page }) => {
+  const user = await register(page);
+  await page.getByRole('button', { name: 'ログアウト' }).click();
+  await expect(page.getByRole('heading', { name: 'ログイン' })).toBeVisible();
+
+  await page.goto(`/login?redirect=${encodeURIComponent('https://evil.example/')}`);
+  await page.getByLabel('メールアドレス').fill(user.email);
+  await page.getByLabel('パスワード').fill(user.password);
+  await page.getByRole('button', { name: 'ログイン' }).click();
+
+  await expect(page.getByRole('heading', { name: 'ダッシュボード' })).toBeVisible();
+  expect(page.url()).not.toContain('evil.example');
+});
+
+test.describe('スマートフォンの幅', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('主要な画面で横スクロールが発生しない', async ({ page }) => {
+    await register(page);
+    for (const path of ['/', '/lessons', '/lessons/generics', '/notes', '/packages']) {
+      await page.goto(path);
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow, `${path} で横にはみ出しています`).toBeLessThanOrEqual(0);
+    }
+  });
 });

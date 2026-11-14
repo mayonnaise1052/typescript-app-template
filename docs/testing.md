@@ -102,15 +102,21 @@ now = new Date('2026-01-09T00:00:00Z'); // 8 日後に進める
 
 要素は「ユーザーから見える内容」（役割・ラベル・文字）で探します。CSS のクラス名のような実装の詳細に依存しないので、見た目を変えてもテストが壊れにくくなります。
 
+画面のテストは、アプリと同じルート定義をメモリ上の履歴で動かして行います（`apps/web/src/test/render.tsx` の `renderApp`）。URL・認証の確認・表示前のデータ取得も、本番と同じように動きます。
+
 ```tsx
-const screen = await render(<LoginPage />);
+worker.use(authHandlers.signedOut()); // API の応答を用意する
+const { screen, router } = await renderApp('/login');
 
 await screen.getByLabelText('メールアドレス').fill('taro@example.com');
 await screen.getByRole('button', { name: 'ログイン' }).click();
 
 // expect.element(...) は、条件を満たすまで自動で待ちます（タイミングのずれに強い）
 await expect.element(screen.getByRole('alert')).toBeVisible();
+expect(router.state.location.pathname).toBe('/login'); // URL も確かめられる
 ```
+
+テストでは本番と同じ CSS を読み込んでいます（`src/test/setup.ts`）。大きさが 0 の要素や、ほかの要素に隠れたボタンは「見えない・押せない」と判定されるので、見た目の不具合にも気付けます。
 
 | よく使うもの                                             | 意味                                                                                                                                          |
 | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
