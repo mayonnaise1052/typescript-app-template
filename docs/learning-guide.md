@@ -86,6 +86,7 @@ API
 | エラー境界と Suspense（データがある前提で書く）   | `apps/web/src/components/ErrorBoundaries.tsx`、`apps/web/src/features/lessons/queries.ts`（`useSuspenseQuery`） |
 | `useSuspenseQueries` の戻り値のタプル型と並列取得 | `apps/web/src/features/progress/DashboardPage.tsx`                                                              |
 | `key` によるコンポーネントの作り直し              | `apps/web/src/features/lessons/LessonPage.tsx`                                                                  |
+| 描画前に DOM を操作する `useLayoutEffect`         | `apps/web/src/components/ScrollToTop.tsx`（画面遷移時に先頭へスクロール）                                       |
 
 ## 3. tsconfig の読み方
 
