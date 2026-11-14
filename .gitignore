@@ -14,3 +14,5 @@ test-results/
 *.tsbuildinfo
 # シード SQL は content から毎回生成します
 apps/api/.generated/
+# Vitest Browser Mode が失敗時に保存するスクリーンショット
+.vitest/

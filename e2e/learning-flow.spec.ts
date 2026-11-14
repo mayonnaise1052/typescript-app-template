@@ -154,3 +154,37 @@ test('セキュリティヘッダーが付き、ブラウザのコンソール�
   // 未ログイン時の /api/auth/me の 401 は想定内なので除外する
   expect(consoleErrors.filter((text) => !text.includes('401'))).toEqual([]);
 });
+
+test('合格後に次のレッスンへ進むと、前のレッスンの結果を引き継がず解答できる', async ({ page }) => {
+  await register(page);
+  await page.goto('/lessons/types-and-inference');
+  await page.getByRole('radio', { name: "'ready'" }).check();
+  await page.getByRole('radio', { name: '型はコンパイル時にだけ存在し、実行時には消える' }).check();
+  await page.getByRole('button', { name: '解答する' }).click();
+  await expect(page.getByText('2 問中 2 問正解')).toBeVisible();
+
+  await page.getByRole('link', { name: '次のレッスン →' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: '関数の型' })).toBeVisible();
+  await expect(page.getByText('完了', { exact: true })).toBeHidden();
+  await expect(page.getByText(/問中/)).toBeHidden();
+  await expect(page.getByRole('button', { name: '解答する' })).toBeEnabled();
+});
+
+test('存在しないレッスンを開くとエラーが表示され、メニューから別の画面へ移動できる', async ({
+  page,
+}) => {
+  await register(page);
+
+  await page.goto('/lessons/no-such-lesson');
+
+  const alert = page.getByRole('alert');
+  await expect(alert).toContainText('表示できませんでした');
+  await expect(alert).toContainText('レッスンが見つかりません');
+  await expect(alert.getByRole('button', { name: '再試行' })).toBeVisible();
+
+  // ヘッダーのメニューは残っていて、移動するとエラー表示が解除される
+  await page.getByRole('link', { name: 'レッスン', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'レッスン' })).toBeVisible();
+  await expect(page.getByRole('alert')).toBeHidden();
+});

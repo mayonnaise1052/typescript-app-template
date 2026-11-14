@@ -1,13 +1,10 @@
 import { CHAPTERS } from '@typequest/shared';
 import { Link } from 'react-router';
-import { ErrorMessage, Loading } from '../../components/Feedback';
 import { useLessons } from './queries';
 
 export function LessonListPage() {
-  const { data: lessons, isPending, error } = useLessons();
-
-  if (isPending) return <Loading />;
-  if (error) return <ErrorMessage error={error} />;
+  // 読み込み中とエラーは、Layout の RouteBoundary が受け持ちます。
+  const { data: lessons } = useLessons();
 
   return (
     <>

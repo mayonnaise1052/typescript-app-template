@@ -15,7 +15,7 @@ TypeScript を学ぶための学習アプリです。アプリでレッスンと
 | API            | Hono（Cloudflare Workers）                               |
 | データベース   | Cloudflare D1（SQLite 互換）/ Drizzle ORM                |
 | 検証と型の共有 | Zod（`packages/shared`）                                 |
-| テスト         | Vitest / Testing Library / MSW / Playwright              |
+| テスト         | Vitest（Browser Mode）/ MSW / Playwright                 |
 | 品質           | TypeScript（strict）/ ESLint / Prettier / GitHub Actions |
 
 ## はじめかた
@@ -25,6 +25,7 @@ TypeScript を学ぶための学習アプリです。アプリでレッスンと
 ```bash
 npm install     # 依存パッケージのインストール
 npm run setup   # ローカル DB の作成と教材の投入（確認を求められたら y）
+npx playwright install chromium   # テスト用ブラウザ（テストを実行する場合のみ）
 npm run dev     # 開発サーバーの起動
 ```
 

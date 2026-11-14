@@ -16,6 +16,7 @@ export default tseslint.config(
       '**/dist/',
       '**/coverage/',
       '**/.wrangler/',
+      '**/.vitest/',
       '**/.generated/',
       'apps/api/migrations/',
       'playwright-report/',
@@ -62,7 +63,9 @@ export default tseslint.config(
     plugins: { 'react-hooks': reactHooks },
     languageOptions: { globals: globals.browser },
     rules: {
-      'react-hooks/rules-of-hooks': 'error',
+      // フックの規則に加え、React Compiler が前提とする書き方（描画中に値を書き換えない、
+      // 描画中に setState しない など）を検査するルール一式を有効にします。
+      ...reactHooks.configs['recommended-latest'].rules,
       'react-hooks/exhaustive-deps': 'error',
     },
   },

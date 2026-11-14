@@ -1,6 +1,5 @@
 import { CHAPTERS } from '@typequest/shared';
 import { Link, useParams } from 'react-router';
-import { ErrorMessage, Loading } from '../../components/Feedback';
 import { RichText } from '../../components/RichText';
 import { QuizForm } from '../quiz/QuizForm';
 import { ContentRenderer } from './ContentRenderer';
@@ -9,11 +8,15 @@ import { useLesson, useSubmitQuiz } from './queries';
 export function LessonPage() {
   // URL のパラメータは「無いかもしれない」ので string | undefined です。
   const { lessonId = '' } = useParams();
-  const { data: lesson, isPending, error } = useLesson(lessonId);
-  const submitQuiz = useSubmitQuiz(lessonId);
+  // 「次のレッスン」へ移動しても、React Router は同じコンポーネントを使い回します。
+  // そのままでは前のレッスンのクイズ結果（useSubmitQuiz の状態）が残ってしまうため、
+  // key にレッスン ID を渡して、レッスンごとに新しいコンポーネントとして作り直します。
+  return <LessonView key={lessonId} lessonId={lessonId} />;
+}
 
-  if (isPending) return <Loading />;
-  if (error) return <ErrorMessage error={error} />;
+function LessonView({ lessonId }: { lessonId: string }) {
+  const { data: lesson } = useLesson(lessonId);
+  const submitQuiz = useSubmitQuiz(lessonId);
 
   const chapter = CHAPTERS.find((candidate) => candidate.id === lesson.chapterId);
   const completed = lesson.completed || submitQuiz.data?.passed === true;
@@ -50,9 +53,7 @@ export function LessonPage() {
 
       <section>
         <h2>確認クイズ</h2>
-        {/* key を変えるとコンポーネントが作り直され、別のレッスンの解答が残りません。 */}
         <QuizForm
-          key={lesson.id}
           questions={lesson.questions}
           result={submitQuiz.data}
           isSubmitting={submitQuiz.isPending}

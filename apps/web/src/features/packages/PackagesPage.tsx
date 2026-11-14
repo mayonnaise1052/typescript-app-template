@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { PackageSearchQuerySchema, type PackageInfo } from '@typequest/shared';
 import { useState, type SubmitEvent } from 'react';
 import { ErrorMessage, Loading } from '../../components/Feedback';
@@ -16,7 +16,7 @@ function usePackageSearch(q: string) {
 }
 
 function useBookmarks() {
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: queryKeys.bookmarks,
     queryFn: async () => (await unwrap(api.packages.bookmarks.$get())).bookmarks,
   });
@@ -42,7 +42,9 @@ export function PackagesPage() {
   const [inputError, setInputError] = useState<string>();
 
   const search = usePackageSearch(query);
-  const bookmarks = useBookmarks();
+  // ブックマーク一覧は表示に必須なので Suspense で待ちます。検索結果は利用者の操作で
+  // 変わるので、従来どおり useQuery でその場に読み込み中を表示します。
+  const { data: bookmarks } = useBookmarks();
   const invalidateBookmarks = () =>
     queryClient.invalidateQueries({ queryKey: queryKeys.bookmarks });
 
@@ -69,7 +71,7 @@ export function PackagesPage() {
     setQuery(parsed.data.q);
   }
 
-  const bookmarkedNames = new Set(bookmarks.data?.map((bookmark) => bookmark.name));
+  const bookmarkedNames = new Set(bookmarks.map((bookmark) => bookmark.name));
 
   return (
     <>
@@ -134,15 +136,11 @@ export function PackagesPage() {
 
       <section>
         <h2>ブックマーク</h2>
-        {bookmarks.isPending ? (
-          <Loading />
-        ) : bookmarks.error ? (
-          <ErrorMessage error={bookmarks.error} />
-        ) : bookmarks.data.length === 0 ? (
+        {bookmarks.length === 0 ? (
           <p className="empty">まだブックマークがありません。</p>
         ) : (
           <ul className="package-list">
-            {bookmarks.data.map((bookmark) => (
+            {bookmarks.map((bookmark) => (
               <li key={bookmark.id} className="card package">
                 <div>
                   <h3>

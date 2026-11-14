@@ -1,30 +1,26 @@
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useSuspenseQueries } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import { ErrorMessage, Loading } from '../../components/Feedback';
 import { api, unwrap } from '../../lib/api';
 import { formatDateTime, formatPercent } from '../../lib/format';
 import { queryKeys } from '../../lib/query';
 import { useCurrentUser } from '../auth/useAuth';
-import { useLessons } from '../lessons/queries';
+import { lessonsQuery } from '../lessons/queries';
 
-function useProgress() {
-  return useQuery({
-    queryKey: queryKeys.progress,
-    queryFn: async () => (await unwrap(api.progress.$get())).progress,
-  });
-}
+const progressQuery = queryOptions({
+  queryKey: queryKeys.progress,
+  queryFn: async () => (await unwrap(api.progress.$get())).progress,
+});
 
 export function DashboardPage() {
   const { data: user } = useCurrentUser();
-  const progress = useProgress();
-  const lessons = useLessons();
+  // 2 つのデータを「並列に」取得します。useSuspenseQuery を 2 回続けて書くと、
+  // 1 つ目が届くまで 2 つ目の取得が始まらない「直列の待ち」になってしまいます。
+  // 戻り値はタプルとして型が付くので、分割代入でそれぞれの data を取り出せます。
+  const [{ data: summary }, { data: lessons }] = useSuspenseQueries({
+    queries: [progressQuery, lessonsQuery],
+  });
 
-  if (progress.isPending || lessons.isPending) return <Loading />;
-  if (progress.error) return <ErrorMessage error={progress.error} />;
-  if (lessons.error) return <ErrorMessage error={lessons.error} />;
-
-  const summary = progress.data;
-  const nextLesson = lessons.data.find((lesson) => !lesson.completed);
+  const nextLesson = lessons.find((lesson) => !lesson.completed);
 
   return (
     <>

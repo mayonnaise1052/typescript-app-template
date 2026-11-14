@@ -1,9 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { server } from '../../test/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/render';
+import { worker } from '../../test/server';
 import { NotesPage } from './NotesPage';
 
 type StoredNote = {
@@ -41,7 +39,7 @@ beforeEach(() => {
   ];
   lastQuery = new URLSearchParams();
 
-  server.use(
+  worker.use(
     http.get('*/api/lessons', () => HttpResponse.json({ lessons: [lesson] })),
     http.get('*/api/notes', ({ request }) => {
       lastQuery = new URL(request.url).searchParams;
@@ -74,68 +72,69 @@ beforeEach(() => {
 });
 
 describe('NotesPage', () => {
-  it('ノートの一覧を表示する', async () => {
-    renderWithProviders(<NotesPage />, { route: '/notes' });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
-    expect(await screen.findByRole('heading', { name: '型引数のメモ' })).toBeInTheDocument();
-    expect(screen.getByText('T は型の引数')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'ジェネリクス' })).toHaveAttribute(
-      'href',
-      '/lessons/generics',
-    );
+  /** 画面を描画し、最初のノートが表示されるまで待ちます。 */
+  async function renderNotes() {
+    const screen = await renderWithProviders(<NotesPage />, { route: '/notes' });
+    await expect.element(screen.getByRole('heading', { name: '型引数のメモ' })).toBeVisible();
+    return screen;
+  }
+
+  it('ノートの一覧を表示する', async () => {
+    const screen = await renderNotes();
+
+    await expect.element(screen.getByText('T は型の引数')).toBeVisible();
+    await expect
+      .element(screen.getByRole('link', { name: 'ジェネリクス' }))
+      .toHaveAttribute('href', '/lessons/generics');
   });
 
   it('新しいノートを作成すると一覧に追加される', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<NotesPage />, { route: '/notes' });
-    await screen.findByRole('heading', { name: '型引数のメモ' });
+    const screen = await renderNotes();
 
-    await user.click(screen.getByRole('button', { name: '新しいノート' }));
-    await user.type(screen.getByLabelText('タイトル'), 'satisfies のメモ');
-    await user.type(screen.getByLabelText('本文'), '型を広げずに検査する');
-    await user.click(screen.getByRole('button', { name: '保存する' }));
+    await screen.getByRole('button', { name: '新しいノート' }).click();
+    await screen.getByLabelText('タイトル').fill('satisfies のメモ');
+    await screen.getByLabelText('本文').fill('型を広げずに検査する');
+    await screen.getByRole('button', { name: '保存する' }).click();
 
-    expect(await screen.findByRole('heading', { name: 'satisfies のメモ' })).toBeInTheDocument();
+    await expect.element(screen.getByRole('heading', { name: 'satisfies のメモ' })).toBeVisible();
     // 保存に成功したらフォームが閉じる
-    expect(screen.queryByLabelText('タイトル')).not.toBeInTheDocument();
+    await expect.element(screen.getByLabelText('タイトル')).not.toBeInTheDocument();
   });
 
   it('タイトルが空なら保存せず、エラーを表示する', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<NotesPage />, { route: '/notes' });
-    await screen.findByRole('heading', { name: '型引数のメモ' });
+    const screen = await renderNotes();
 
-    await user.click(screen.getByRole('button', { name: '新しいノート' }));
-    await user.click(screen.getByRole('button', { name: '保存する' }));
+    await screen.getByRole('button', { name: '新しいノート' }).click();
+    await screen.getByRole('button', { name: '保存する' }).click();
 
-    expect(await screen.findByText('タイトルを入力してください')).toBeInTheDocument();
+    await expect.element(screen.getByText('タイトルを入力してください')).toBeVisible();
     expect(notes).toHaveLength(1);
   });
 
   it('検索語を API に渡し、結果がなければその旨を表示する', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<NotesPage />, { route: '/notes' });
-    await screen.findByRole('heading', { name: '型引数のメモ' });
+    const screen = await renderNotes();
 
-    await user.type(screen.getByRole('searchbox', { name: 'ノートを検索' }), '存在しない');
-    await user.click(screen.getByRole('button', { name: '検索' }));
+    await screen.getByRole('searchbox', { name: 'ノートを検索' }).fill('存在しない');
+    await screen.getByRole('button', { name: '検索' }).click();
 
-    expect(await screen.findByText('条件に一致するノートはありません。')).toBeInTheDocument();
+    await expect.element(screen.getByText('条件に一致するノートはありません。')).toBeVisible();
     expect(lastQuery.get('q')).toBe('存在しない');
   });
 
   it('確認ダイアログで OK すると削除する', async () => {
-    const user = userEvent.setup();
-    window.confirm = () => true;
-    renderWithProviders(<NotesPage />, { route: '/notes' });
-    const heading = await screen.findByRole('heading', { name: '型引数のメモ' });
-    const card = heading.closest('li');
-    if (!card) throw new Error('ノートのカードが見つかりません');
+    // 本物のブラウザの確認ダイアログは操作を止めてしまうので、「OK」を返す偽物に差し替えます。
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const screen = await renderNotes();
+    const card = screen.getByRole('listitem').filter({ hasText: '型引数のメモ' });
 
-    await user.click(within(card).getByRole('button', { name: '削除' }));
+    await card.getByRole('button', { name: '削除' }).click();
 
-    await waitFor(() =>
-      expect(screen.queryByRole('heading', { name: '型引数のメモ' })).not.toBeInTheDocument(),
-    );
+    await expect
+      .element(screen.getByRole('heading', { name: '型引数のメモ' }))
+      .not.toBeInTheDocument();
   });
 });

@@ -915,3 +915,19 @@ progress::-moz-progress-bar {
     align-items: stretch;
   }
 }
+
+/* ---- エラー表示 ---- */
+
+.error-panel {
+  max-width: 40rem;
+  border-left: 4px solid var(--danger);
+}
+
+.error-panel h1 {
+  font-size: 1.3rem;
+}
+
+.error-panel p {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+}

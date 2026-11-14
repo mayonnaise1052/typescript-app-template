@@ -1,7 +1,6 @@
 import type { PublicQuestion, QuestionId, QuizResult } from '@typequest/shared';
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { render } from 'vitest-browser-react';
 import { QuizForm } from './QuizForm';
 
 const id = (value: string) => value as QuestionId;
@@ -13,7 +12,7 @@ const questions: PublicQuestion[] = [
 ];
 
 /** 必須の props を既定値で埋め、テストごとに必要な部分だけ上書きします。 */
-function renderQuiz(overrides: Partial<Parameters<typeof QuizForm>[0]> = {}) {
+async function renderQuiz(overrides: Partial<Parameters<typeof QuizForm>[0]> = {}) {
   const props = {
     questions,
     result: undefined,
@@ -23,33 +22,32 @@ function renderQuiz(overrides: Partial<Parameters<typeof QuizForm>[0]> = {}) {
     onRetry: vi.fn(),
     ...overrides,
   };
-  render(<QuizForm {...props} />);
-  return props;
+  const screen = await render(<QuizForm {...props} />);
+  return { screen, props };
 }
 
 describe('QuizForm', () => {
-  it('問題の種類に応じた入力欄を表示する', () => {
-    renderQuiz();
+  it('問題の種類に応じた入力欄を表示する', async () => {
+    const { screen } = await renderQuiz();
 
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
-    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
-    expect(screen.getByRole('textbox', { name: /空欄/ })).toBeInTheDocument();
-    expect(screen.getByText('type K = ____ T;')).toBeInTheDocument();
+    expect(screen.getByRole('radio').elements()).toHaveLength(2);
+    expect(screen.getByRole('checkbox').elements()).toHaveLength(3);
+    await expect.element(screen.getByRole('textbox', { name: /空欄/ })).toBeVisible();
+    await expect.element(screen.getByText('type K = ____ T;')).toBeVisible();
   });
 
   it('入力した解答を、種類ごとの形で onSubmit に渡す', async () => {
-    // userEvent は、実際のユーザーに近い形でクリックやキー入力を再現します。
-    const user = userEvent.setup();
-    const { onSubmit } = renderQuiz();
+    // ロケーターの click() や fill() は、本物のブラウザでの操作として実行されます。
+    const { screen, props } = await renderQuiz();
 
-    await user.click(screen.getByRole('radio', { name: "'ok'" }));
-    await user.click(screen.getByRole('checkbox', { name: 'A' }));
-    await user.click(screen.getByRole('checkbox', { name: 'C' }));
-    await user.click(screen.getByRole('checkbox', { name: 'A' })); // 選び直して外す
-    await user.type(screen.getByRole('textbox', { name: /空欄/ }), 'keyof');
-    await user.click(screen.getByRole('button', { name: '解答する' }));
+    await screen.getByRole('radio', { name: "'ok'" }).click();
+    await screen.getByRole('checkbox', { name: 'A' }).click();
+    await screen.getByRole('checkbox', { name: 'C' }).click();
+    await screen.getByRole('checkbox', { name: 'A' }).click(); // 選び直して外す
+    await screen.getByRole('textbox', { name: /空欄/ }).fill('keyof');
+    await screen.getByRole('button', { name: '解答する' }).click();
 
-    expect(onSubmit).toHaveBeenCalledWith([
+    expect(props.onSubmit).toHaveBeenCalledWith([
       { questionId: 'q1', kind: 'single-choice', selectedIndex: 1 },
       { questionId: 'q2', kind: 'multiple-choice', selectedIndexes: [2] },
       { questionId: 'q3', kind: 'fill-blank', text: 'keyof' },
@@ -57,15 +55,14 @@ describe('QuizForm', () => {
   });
 
   it('未解答の問題は送信内容に含めない', async () => {
-    const user = userEvent.setup();
-    const { onSubmit } = renderQuiz();
+    const { screen, props } = await renderQuiz();
 
-    await user.click(screen.getByRole('button', { name: '解答する' }));
+    await screen.getByRole('button', { name: '解答する' }).click();
 
-    expect(onSubmit).toHaveBeenCalledWith([]);
+    expect(props.onSubmit).toHaveBeenCalledWith([]);
   });
 
-  it('採点結果として、正誤・正解・解説を表示する', () => {
+  it('採点結果として、正誤・正解・解説を表示する', async () => {
     const result: QuizResult = {
       lessonId: 'x' as QuizResult['lessonId'],
       score: 1,
@@ -93,23 +90,22 @@ describe('QuizForm', () => {
         },
       ],
     };
-    renderQuiz({ result });
+    const { screen } = await renderQuiz({ result });
 
-    expect(screen.getByText('3 問中 1 問正解')).toBeInTheDocument();
-    expect(screen.getByText('リテラル型になります')).toBeInTheDocument();
+    await expect.element(screen.getByText('3 問中 1 問正解')).toBeVisible();
+    await expect.element(screen.getByText('リテラル型になります')).toBeVisible();
 
     const second = screen.getByRole('group', { name: /当てはまるものは/ });
-    expect(within(second).getByText('✗ 不正解')).toBeInTheDocument();
-    expect(within(second).getByText('A / C')).toBeInTheDocument();
+    await expect.element(second.getByText('✗ 不正解')).toBeVisible();
+    await expect.element(second.getByText('A / C')).toBeVisible();
 
     // 採点後は入力欄を変更できず、送信ボタンは「もう一度」に変わる
-    expect(screen.getAllByRole('radio')[0]).toBeDisabled();
-    expect(screen.queryByRole('button', { name: '解答する' })).not.toBeInTheDocument();
+    await expect.element(screen.getByRole('radio').first()).toBeDisabled();
+    await expect.element(screen.getByRole('button', { name: '解答する' })).not.toBeInTheDocument();
   });
 
   it('「もう一度挑戦する」で入力を消し、onRetry を呼ぶ', async () => {
-    const user = userEvent.setup();
-    const { onRetry } = renderQuiz({
+    const { screen, props } = await renderQuiz({
       result: {
         lessonId: 'x' as QuizResult['lessonId'],
         score: 0,
@@ -120,13 +116,13 @@ describe('QuizForm', () => {
       },
     });
 
-    await user.click(screen.getByRole('button', { name: 'もう一度挑戦する' }));
+    await screen.getByRole('button', { name: 'もう一度挑戦する' }).click();
 
-    expect(onRetry).toHaveBeenCalledOnce();
+    expect(props.onRetry).toHaveBeenCalledOnce();
   });
 
-  it('送信中はボタンを無効にする', () => {
-    renderQuiz({ isSubmitting: true });
-    expect(screen.getByRole('button', { name: '採点中…' })).toBeDisabled();
+  it('送信中はボタンを無効にする', async () => {
+    const { screen } = await renderQuiz({ isSubmitting: true });
+    await expect.element(screen.getByRole('button', { name: '採点中…' })).toBeDisabled();
   });
 });

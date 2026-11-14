@@ -1,10 +1,10 @@
 import type { ContentBlock } from '@typequest/shared';
-import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { render } from 'vitest-browser-react';
 import { ContentRenderer } from './ContentRenderer';
 
 describe('ContentRenderer', () => {
-  it('ブロックの種類に応じた要素を描画する', () => {
+  it('ブロックの種類に応じた要素を描画する', async () => {
     const blocks: ContentBlock[] = [
       { type: 'heading', text: '型注釈' },
       { type: 'paragraph', text: '変数に `: 型` と書きます。' },
@@ -13,24 +13,25 @@ describe('ContentRenderer', () => {
       { type: 'callout', tone: 'warning', text: '気を付けましょう' },
     ];
 
-    render(<ContentRenderer blocks={blocks} />);
+    const screen = await render(<ContentRenderer blocks={blocks} />);
 
-    expect(screen.getByRole('heading', { name: '型注釈' })).toBeInTheDocument();
-    expect(screen.getByText(': 型').tagName).toBe('CODE');
-    expect(screen.getByText('const a: number = 1;')).toBeInTheDocument();
-    expect(screen.getAllByRole('listitem')).toHaveLength(2);
-    expect(screen.getByText('注意')).toBeInTheDocument();
+    await expect.element(screen.getByRole('heading', { name: '型注釈' })).toBeVisible();
+    // バッククォートで囲んだ部分は <code> 要素になる
+    expect(screen.getByText(': 型').element().tagName).toBe('CODE');
+    await expect.element(screen.getByText('const a: number = 1;')).toBeVisible();
+    expect(screen.getByRole('listitem').elements()).toHaveLength(2);
+    await expect.element(screen.getByText('注意')).toBeVisible();
   });
 
-  it('本文に HTML が含まれていても、要素としては解釈しない（XSS 対策）', () => {
+  it('本文に HTML が含まれていても、要素としては解釈しない（XSS 対策）', async () => {
     const blocks: ContentBlock[] = [
       { type: 'paragraph', text: '<img src=x onerror="alert(1)"> と `<script>alert(1)</script>`' },
     ];
 
-    const { container } = render(<ContentRenderer blocks={blocks} />);
+    const screen = await render(<ContentRenderer blocks={blocks} />);
 
-    expect(container.querySelector('img')).toBeNull();
-    expect(container.querySelector('script')).toBeNull();
-    expect(screen.getByText('<script>alert(1)</script>')).toBeInTheDocument();
+    expect(screen.container.querySelector('img')).toBeNull();
+    expect(screen.container.querySelector('script')).toBeNull();
+    await expect.element(screen.getByText('<script>alert(1)</script>')).toBeVisible();
   });
 });

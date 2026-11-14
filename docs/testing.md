@@ -3,7 +3,8 @@
 ## まず実行してみる
 
 ```bash
-npm test              # 単体テスト・結合テスト・型のテスト（約 20 秒）
+npx playwright install chromium   # 初回のみ: テスト用ブラウザの準備（コンポーネントテストと E2E で使う）
+npm test              # 単体テスト・結合テスト・コンポーネントテスト・型のテスト（約 30 秒）
 npm run test:e2e      # ブラウザを使った E2E テスト（初回のみブラウザの準備が必要、下記参照）
 npm run check         # 整形の確認 + lint + 型チェック + テスト（プッシュ前に）
 ```
@@ -23,13 +24,13 @@ Git フックは `npm install` のときに自動で有効になります（`scr
 
 ## テストの種類と置き場所
 
-| 種類                 | 何を確かめるか                             | 場所                                  | 道具                        |
-| -------------------- | ------------------------------------------ | ------------------------------------- | --------------------------- |
-| 単体テスト           | 関数 1 つの入出力                          | 対象の隣（`*.test.ts`）               | Vitest                      |
-| 型のテスト           | 型そのものが意図どおりか                   | `packages/shared/src/types.test-d.ts` | Vitest（`expectTypeOf`）    |
-| 結合テスト           | API を呼んで DB まで通した動作             | `apps/api/test/`                      | Vitest + Workers ランタイム |
-| コンポーネントテスト | 画面の部品を、ユーザーの操作を通して       | 対象の隣（`*.test.tsx`）              | Testing Library + MSW       |
-| E2E テスト           | 実際のブラウザで、主要な流れが通しで動くか | `e2e/`                                | Playwright                  |
+| 種類                 | 何を確かめるか                                       | 場所                                  | 道具                        |
+| -------------------- | ---------------------------------------------------- | ------------------------------------- | --------------------------- |
+| 単体テスト           | 関数 1 つの入出力                                    | 対象の隣（`*.test.ts`）               | Vitest                      |
+| 型のテスト           | 型そのものが意図どおりか                             | `packages/shared/src/types.test-d.ts` | Vitest（`expectTypeOf`）    |
+| 結合テスト           | API を呼んで DB まで通した動作                       | `apps/api/test/`                      | Vitest + Workers ランタイム |
+| コンポーネントテスト | 画面の部品を、本物のブラウザでユーザーの操作を通して | 対象の隣（`*.test.tsx`）              | Vitest Browser Mode + MSW   |
+| E2E テスト           | 実際のブラウザで、主要な流れが通しで動くか           | `e2e/`                                | Playwright                  |
 
 下に行くほど「本物に近い」代わりに、遅く、失敗の原因を特定しにくくなります。そのため、細かい条件分岐は単体テストで網羅し、E2E は主要な流れだけに絞っています。
 
@@ -97,25 +98,47 @@ now = new Date('2026-01-09T00:00:00Z'); // 8 日後に進める
 
 ## フロントエンドのテストの仕組み
 
-Testing Library は「ユーザーから見える内容」で要素を探します。CSS のクラス名のような実装の詳細に依存しないので、見た目を変えてもテストが壊れにくくなります。
+コンポーネントテストは **Vitest Browser Mode** で、本物の Chromium の中で実行します（`apps/web/vite.config.ts` の `test.browser`）。Node 上でブラウザを模倣する方式（jsdom）と違い、レイアウト・フォーカス・イベントが実際のブラウザと同じように動きます。
+
+要素は「ユーザーから見える内容」（役割・ラベル・文字）で探します。CSS のクラス名のような実装の詳細に依存しないので、見た目を変えてもテストが壊れにくくなります。
 
 ```tsx
-await user.type(screen.getByLabelText('メールアドレス'), 'taro@example.com');
-await user.click(screen.getByRole('button', { name: 'ログイン' }));
-expect(await screen.findByRole('alert')).toHaveTextContent('正しくありません');
+const screen = await render(<LoginPage />);
+
+await screen.getByLabelText('メールアドレス').fill('taro@example.com');
+await screen.getByRole('button', { name: 'ログイン' }).click();
+
+// expect.element(...) は、条件を満たすまで自動で待ちます（タイミングのずれに強い）
+await expect.element(screen.getByRole('alert')).toBeVisible();
 ```
 
-API の応答は MSW で差し替えます。テストごとに、必要な応答だけを登録します。
+| よく使うもの                                             | 意味                                                                                                                                          |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `screen.getByRole(...)` / `getByLabelText` / `getByText` | 要素を探す「ロケーター」を作る（この時点では探さない）                                                                                        |
+| `.click()` / `.fill(...)`                                | 本物のブラウザでの操作として実行する                                                                                                          |
+| `await expect.element(ロケーター).toBeVisible()`         | 見えるようになるまで待って確かめる                                                                                                            |
+| `.not.toBeInTheDocument()`                               | 消えるまで待って確かめる                                                                                                                      |
+| `toHaveTextContent('…')`                                 | 要素の文字が**全体として一致**するかを確かめる（部分一致ではない点に注意。一部だけ確かめたいときは、その文字を持つ要素を `getByText` で探す） |
+
+API の応答は MSW のブラウザ版で差し替えます。テストの間だけ Service Worker として動き、fetch を横取りします。テストごとに、必要な応答だけを登録します。
 
 ```tsx
-server.use(
+worker.use(
   http.post('*/api/auth/login', () =>
     HttpResponse.json({ error: { code: 'UNAUTHENTICATED', message: '…' } }, { status: 401 }),
   ),
 );
 ```
 
-登録していない API を呼ぶとテストが失敗する設定にしているので、「呼ばれないはずの API が呼ばれた」ことにも気付けます。
+応答を登録していない `/api/` を呼ぶとテストが失敗する設定にしているので（`apps/web/src/test/setup.ts`）、「呼ばれないはずの API が呼ばれた」ことにも気付けます。
+
+MSW の Service Worker は、テストのときだけ Vite のプラグインが配信します。`public/` には置かないので、本番のビルド結果には含まれません。
+
+失敗したテストは、その瞬間の画面のスクリーンショットが `apps/web/.vitest/` に保存されます。ブラウザの画面を見ながら実行したいときは次のようにします。
+
+```bash
+npm run test:watch -w @typequest/web -- --browser.headless=false
+```
 
 ## E2E テスト
 

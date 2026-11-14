@@ -25,7 +25,9 @@ export function NotesPage() {
 
   const [mode, setMode] = useState<Mode>({ type: 'list' });
   const notes = useNotes(params);
-  const lessons = useLessons();
+  // 絞り込み用のレッスン一覧は表示に必須なので Suspense で待ちます。
+  // ノート一覧は検索やページ送りのたびに条件が変わるので、従来どおりその場で読み込み中を表示します。
+  const { data: lessonList } = useLessons();
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
@@ -55,7 +57,6 @@ export function NotesPage() {
     setMode({ type: 'list' });
   };
 
-  const lessonList = lessons.data ?? [];
   const lessonTitle = (id: string | null) => lessonList.find((lesson) => lesson.id === id)?.title;
 
   return (

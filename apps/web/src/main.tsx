@@ -3,6 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { App } from './App';
+import { AppErrorBoundary } from './components/ErrorBoundaries';
 import { createQueryClient } from './lib/query';
 import './styles.css';
 
@@ -12,10 +13,12 @@ if (!container) throw new Error('#root が見つかりません');
 
 createRoot(container).render(
   <StrictMode>
-    <QueryClientProvider client={createQueryClient()}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <AppErrorBoundary>
+      <QueryClientProvider client={createQueryClient()}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </AppErrorBoundary>
   </StrictMode>,
 );

@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { useCurrentUser, useLogout } from '../features/auth/useAuth';
+import { RouteBoundary } from './ErrorBoundaries';
 
 const NAV_ITEMS = [
   { to: '/', label: 'ダッシュボード', end: true },
@@ -41,7 +42,10 @@ export function Layout() {
         </div>
       </header>
       <main className="page">
-        <Outlet />
+        {/* 各画面のエラーと読み込み中はここで受け止めるので、ヘッダーとメニューは常に残ります。 */}
+        <RouteBoundary>
+          <Outlet />
+        </RouteBoundary>
       </main>
     </>
   );
