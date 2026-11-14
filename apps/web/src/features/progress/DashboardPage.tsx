@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { EmptyState } from '../../components/Feedback';
 import { buttonVariants } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
+import { Card, CardContent } from '../../components/ui/card';
 import { Progress } from '../../components/ui/progress';
 import { api, unwrap } from '../../lib/api';
 import { formatDateTime, formatPercent } from '../../lib/format';
@@ -19,9 +19,11 @@ export const progressQuery = queryOptions({
 
 function Stat({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Card className="px-5 py-4">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-3xl font-bold tabular-nums">{children}</dd>
+    <Card>
+      <CardContent>
+        <dt className="text-sm text-muted-foreground">{label}</dt>
+        <dd className="text-3xl font-bold tabular-nums">{children}</dd>
+      </CardContent>
     </Card>
   );
 }
@@ -65,31 +67,33 @@ export function DashboardPage() {
         </Stat>
       </dl>
 
-      <Card className="mt-5 flex flex-wrap items-center justify-between gap-4 border-l-4 border-l-primary">
-        {nextLesson ? (
-          <>
+      <Card className="mt-5 border-l-4 border-l-primary">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          {nextLesson ? (
+            <>
+              <div>
+                <p className="text-sm text-muted-foreground">次のレッスン</p>
+                <h2 className="text-xl font-bold">{nextLesson.title}</h2>
+                <p className="mt-1 text-muted-foreground">{nextLesson.summary}</p>
+              </div>
+              <Link
+                to="/lessons/$lessonId"
+                params={{ lessonId: nextLesson.id }}
+                className={buttonVariants({ variant: 'default' })}
+              >
+                学習する
+              </Link>
+            </>
+          ) : (
             <div>
-              <p className="text-sm text-muted-foreground">次のレッスン</p>
-              <h2 className="text-xl font-bold">{nextLesson.title}</h2>
-              <p className="mt-1 text-muted-foreground">{nextLesson.summary}</p>
+              <p className="text-sm text-muted-foreground">おめでとうございます</p>
+              <h2 className="text-xl font-bold">すべてのレッスンを完了しました</h2>
+              <p className="mt-1 text-muted-foreground">
+                docs/learning-guide.md を手がかりに、このアプリのソースコードを読んでみましょう。
+              </p>
             </div>
-            <Link
-              to="/lessons/$lessonId"
-              params={{ lessonId: nextLesson.id }}
-              className={buttonVariants({ variant: 'primary' })}
-            >
-              学習する
-            </Link>
-          </>
-        ) : (
-          <div>
-            <p className="text-sm text-muted-foreground">おめでとうございます</p>
-            <h2 className="text-xl font-bold">すべてのレッスンを完了しました</h2>
-            <p className="mt-1 text-muted-foreground">
-              docs/learning-guide.md を手がかりに、このアプリのソースコードを読んでみましょう。
-            </p>
-          </div>
-        )}
+          )}
+        </CardContent>
       </Card>
 
       <section className="mt-9">
@@ -104,7 +108,7 @@ export function DashboardPage() {
               <Progress
                 value={chapter.completed}
                 max={Math.max(chapter.total, 1)}
-                label={`${chapter.title}の進み具合`}
+                aria-label={`${chapter.title}の進み具合`}
                 className="col-span-2 row-start-2 sm:col-span-1 sm:row-start-auto"
               />
               <span className="text-sm text-muted-foreground tabular-nums">

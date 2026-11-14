@@ -13,7 +13,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { errorMessage } from '../lib/api';
 import { Loading } from './Feedback';
 import { Button, buttonVariants } from './ui/button';
-import { Card } from './ui/card';
+import { Card, CardContent } from './ui/card';
 
 /** 受け止めたエラーを記録します。本番ではここからエラー監視サービスへ送るのが一般的です。 */
 function logError(error: unknown): void {
@@ -39,17 +39,19 @@ export function RouteErrorFallback({ error }: ErrorComponentProps) {
 
   return (
     <Card role="alert" className="max-w-xl border-l-4 border-l-destructive">
-      <h1 className="text-xl font-bold">表示できませんでした</h1>
-      {/* API のエラーは内容を表示し、想定外のエラーは一般的な文言だけを表示します。 */}
-      <p className="mt-1 text-muted-foreground">{errorMessage(error)}</p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="primary" onClick={retry}>
-          再試行
-        </Button>
-        <Link to="/" className={buttonVariants({ variant: 'ghost' })}>
-          ダッシュボードへ戻る
-        </Link>
-      </div>
+      <CardContent>
+        <h1 className="text-xl font-bold">表示できませんでした</h1>
+        {/* API のエラーは内容を表示し、想定外のエラーは一般的な文言だけを表示します。 */}
+        <p className="mt-1 text-muted-foreground">{errorMessage(error)}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="default" onClick={retry}>
+            再試行
+          </Button>
+          <Link to="/" className={buttonVariants({ variant: 'ghost' })}>
+            ダッシュボードへ戻る
+          </Link>
+        </div>
+      </CardContent>
     </Card>
   );
 }
@@ -65,7 +67,7 @@ export function RouteNotFound() {
     <main className="mx-auto max-w-md px-4 py-16 text-center">
       <h1 className="text-2xl font-bold">ページが見つかりません</h1>
       <p className="mt-2 text-muted-foreground">URL が正しいか確認してください。</p>
-      <Link to="/" className={buttonVariants({ variant: 'primary', className: 'mt-6' })}>
+      <Link to="/" className={buttonVariants({ variant: 'default', className: 'mt-6' })}>
         ダッシュボードへ戻る
       </Link>
     </main>
@@ -80,7 +82,7 @@ function AppErrorFallback() {
         ページを読み込み直してください。解決しない場合は、時間をおいてからお試しください。
       </p>
       <div className="mt-6 flex gap-2">
-        <Button variant="primary" onClick={() => window.location.reload()}>
+        <Button variant="default" onClick={() => window.location.reload()}>
           再読み込み
         </Button>
         {/* ルーターの外側でも動くよう、通常のリンクを使います。 */}

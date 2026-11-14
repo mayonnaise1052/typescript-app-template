@@ -1,9 +1,9 @@
 import type { ComponentProps } from 'react';
-import { FieldError, FieldHint } from './Feedback';
-import { Input, Label } from './ui/input';
+import { Field, FieldDescription, FieldError, FieldLabel } from './ui/field';
+import { Input } from './ui/input';
 
 /**
- * ラベル・入力欄・補足・エラー表示をまとめた部品。
+ * ラベル・入力欄・補足・エラー表示をまとめた部品。shadcn/ui の Field の部品を組み合わせています。
  *
  * `ComponentProps<'input'>` は <input> が受け取れる全属性の型です。交差型（&）で独自の props を足し、
  * 残りは `...rest` でそのまま入力欄に渡します。React Hook Form の `register('email')` が返す
@@ -23,8 +23,8 @@ export function TextField({ label, name, error, hint, ...rest }: TextFieldProps)
   const describedBy = [error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ');
 
   return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={name}>{label}</Label>
+    <Field data-invalid={error ? true : undefined}>
+      <FieldLabel htmlFor={name}>{label}</FieldLabel>
       <Input
         id={name}
         name={name}
@@ -32,8 +32,8 @@ export function TextField({ label, name, error, hint, ...rest }: TextFieldProps)
         aria-describedby={describedBy || undefined}
         {...rest}
       />
-      {hint && <FieldHint id={hintId}>{hint}</FieldHint>}
-      <FieldError id={errorId} message={error} />
-    </div>
+      {hint && <FieldDescription id={hintId}>{hint}</FieldDescription>}
+      {error && <FieldError id={errorId}>{error}</FieldError>}
+    </Field>
   );
 }

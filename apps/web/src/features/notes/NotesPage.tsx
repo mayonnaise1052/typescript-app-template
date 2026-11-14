@@ -3,10 +3,11 @@ import type { Note } from '@typequest/shared';
 import { useState, type SubmitEvent } from 'react';
 import { toast } from '../../components/ui/toast';
 import { EmptyState, ErrorMessage, Loading } from '../../components/Feedback';
-import { ConfirmDialog } from '../../components/ui/alert-dialog';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
-import { Input, NativeSelect } from '../../components/ui/input';
+import { Card, CardContent } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { NativeSelect, NativeSelectOption } from '../../components/ui/native-select';
 import { formatDateTime } from '../../lib/format';
 import { useLessons } from '../lessons/queries';
 import { NoteForm, type NoteFormValues } from './NoteForm';
@@ -76,7 +77,7 @@ export function NotesPage({ search }: { search: NotesSearch }) {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold">ノート</h1>
         {mode.type === 'list' && (
-          <Button variant="primary" onClick={() => setMode({ type: 'create' })}>
+          <Button variant="default" onClick={() => setMode({ type: 'create' })}>
             新しいノート
           </Button>
         )}
@@ -105,7 +106,9 @@ export function NotesPage({ search }: { search: NotesSearch }) {
           maxLength={100}
           className="w-auto flex-[1_1_14rem]"
         />
-        <Button type="submit">検索</Button>
+        <Button variant="outline" type="submit">
+          検索
+        </Button>
         <label className="sr-only" htmlFor="note-lesson-filter">
           レッスンで絞り込む
         </label>
@@ -118,11 +121,11 @@ export function NotesPage({ search }: { search: NotesSearch }) {
           }}
           className="w-auto flex-[0_1_14rem]"
         >
-          <option value="">すべてのレッスン</option>
+          <NativeSelectOption value="">すべてのレッスン</NativeSelectOption>
           {lessonList.map((lesson) => (
-            <option key={lesson.id} value={lesson.id}>
+            <NativeSelectOption key={lesson.id} value={lesson.id}>
               {lesson.title}
-            </option>
+            </NativeSelectOption>
           ))}
         </NativeSelect>
       </form>
@@ -153,46 +156,50 @@ export function NotesPage({ search }: { search: NotesSearch }) {
               ) : (
                 <li key={note.id}>
                   <Card>
-                    <div className="flex items-start justify-between gap-4">
-                      <h2 className="text-lg font-bold [overflow-wrap:anywhere]">{note.title}</h2>
-                      <div className="flex shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setMode({ type: 'edit', noteId: note.id })}
-                        >
-                          編集
-                        </Button>
-                        <ConfirmDialog
-                          trigger={
-                            <Button
-                              variant="ghost-destructive"
-                              size="sm"
-                              disabled={deleteNote.isPending}
-                            >
-                              削除
-                            </Button>
-                          }
-                          title="ノートを削除しますか？"
-                          description={`「${note.title}」を削除します。この操作は取り消せません。`}
-                          confirmLabel="削除する"
-                          onConfirm={() => remove(note)}
-                        />
+                    <CardContent>
+                      <div className="flex items-start justify-between gap-4">
+                        <h2 className="text-lg font-bold [overflow-wrap:anywhere]">{note.title}</h2>
+                        <div className="flex shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setMode({ type: 'edit', noteId: note.id })}
+                          >
+                            編集
+                          </Button>
+                          <ConfirmDialog
+                            trigger={
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                disabled={deleteNote.isPending}
+                              >
+                                削除
+                              </Button>
+                            }
+                            title="ノートを削除しますか？"
+                            description={`「${note.title}」を削除します。この操作は取り消せません。`}
+                            confirmLabel="削除する"
+                            onConfirm={() => remove(note)}
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <p className="my-2 whitespace-pre-wrap [overflow-wrap:anywhere]">{note.body}</p>
-                    <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                      {note.lessonId && (
-                        <Link
-                          to="/lessons/$lessonId"
-                          params={{ lessonId: note.lessonId }}
-                          className="text-primary underline-offset-4 hover:underline"
-                        >
-                          {lessonTitle(note.lessonId) ?? note.lessonId}
-                        </Link>
-                      )}
-                      <span>更新: {formatDateTime(note.updatedAt)}</span>
-                    </p>
+                      <p className="my-2 whitespace-pre-wrap [overflow-wrap:anywhere]">
+                        {note.body}
+                      </p>
+                      <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                        {note.lessonId && (
+                          <Link
+                            to="/lessons/$lessonId"
+                            params={{ lessonId: note.lessonId }}
+                            className="text-primary underline-offset-4 hover:underline"
+                          >
+                            {lessonTitle(note.lessonId) ?? note.lessonId}
+                          </Link>
+                        )}
+                        <span>更新: {formatDateTime(note.updatedAt)}</span>
+                      </p>
+                    </CardContent>
                   </Card>
                 </li>
               ),
@@ -204,6 +211,7 @@ export function NotesPage({ search }: { search: NotesSearch }) {
             aria-label="ページ送り"
           >
             <Button
+              variant="outline"
               disabled={notes.data.page <= 1}
               onClick={() => updateSearch({ page: notes.data.page - 1 })}
             >
@@ -213,6 +221,7 @@ export function NotesPage({ search }: { search: NotesSearch }) {
               {notes.data.page} / {notes.data.totalPages} ページ（全 {notes.data.totalItems} 件）
             </span>
             <Button
+              variant="outline"
               disabled={notes.data.page >= notes.data.totalPages}
               onClick={() => updateSearch({ page: notes.data.page + 1 })}
             >

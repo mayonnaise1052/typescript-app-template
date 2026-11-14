@@ -10,7 +10,7 @@ import { useState, type ReactNode, type SubmitEvent } from 'react';
 import { toast } from '../../components/ui/toast';
 import { EmptyState, ErrorMessage, Loading } from '../../components/Feedback';
 import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
+import { Card, CardContent } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { api, errorMessage, unwrap } from '../../lib/api';
 import { queryKeys } from '../../lib/query';
@@ -39,25 +39,27 @@ function npmUrl(name: string): string {
 function PackageCard({ pkg, action }: { pkg: PackageInfo | Bookmark; action: ReactNode }) {
   return (
     <li>
-      <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h3 className="font-semibold [overflow-wrap:anywhere]">
-            {/* rel="noopener noreferrer": 開いた先のページから、このページを操作されないようにします。 */}
-            <a
-              href={npmUrl(pkg.name)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline underline-offset-4"
-            >
-              {pkg.name}
-            </a>{' '}
-            <small className="font-medium text-muted-foreground">{pkg.version}</small>
-          </h3>
-          <p className="mt-0.5 text-sm text-muted-foreground [overflow-wrap:anywhere]">
-            {pkg.description || '（説明なし）'}
-          </p>
-        </div>
-        {action}
+      <Card>
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h3 className="font-semibold [overflow-wrap:anywhere]">
+              {/* rel="noopener noreferrer": 開いた先のページから、このページを操作されないようにします。 */}
+              <a
+                href={npmUrl(pkg.name)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-4"
+              >
+                {pkg.name}
+              </a>{' '}
+              <small className="font-medium text-muted-foreground">{pkg.version}</small>
+            </h3>
+            <p className="mt-0.5 text-sm text-muted-foreground [overflow-wrap:anywhere]">
+              {pkg.description || '（説明なし）'}
+            </p>
+          </div>
+          {action}
+        </CardContent>
       </Card>
     </li>
   );
@@ -129,7 +131,7 @@ export function PackagesPage() {
           aria-invalid={inputError ? true : undefined}
           className="w-auto flex-[1_1_14rem]"
         />
-        <Button type="submit" variant="primary">
+        <Button type="submit" variant="default">
           検索
         </Button>
       </form>
@@ -152,6 +154,7 @@ export function PackagesPage() {
                   pkg={pkg}
                   action={
                     <Button
+                      variant="outline"
                       disabled={bookmarkedNames.has(pkg.name) || addBookmark.isPending}
                       onClick={() => addBookmark.mutate(pkg)}
                     >
@@ -177,7 +180,7 @@ export function PackagesPage() {
                 pkg={bookmark}
                 action={
                   <Button
-                    variant="ghost-destructive"
+                    variant="destructive"
                     disabled={removeBookmark.isPending}
                     onClick={() => removeBookmark.mutate(bookmark)}
                   >

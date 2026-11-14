@@ -4,7 +4,10 @@
     // ブラウザで動くコードなので DOM の型を読み込みます。
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "types": ["vite/client", "@vitest/browser-playwright"]
+    "types": ["vite/client", "@vitest/browser-playwright"],
+    // `@/components/ui/button` のように、src/ からの位置で import できるようにします。
+    // shadcn/ui の CLI が部品を追加するときに、この書き方を使います。
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src"]
 }

@@ -6,7 +6,7 @@ import type { z } from 'zod';
 import { ErrorMessage } from '../../components/Feedback';
 import { TextField } from '../../components/TextField';
 import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
+import { Card, CardContent } from '../../components/ui/card';
 import { applyServerErrors } from '../../lib/form';
 import { useLogin } from './useAuth';
 
@@ -44,26 +44,28 @@ export function LoginPage() {
     <>
       <h1 className="mb-6 text-center text-2xl font-bold">ログイン</h1>
       <Card>
-        <form onSubmit={onSubmit} noValidate className="grid gap-4">
-          {errors.root?.server && <ErrorMessage>{errors.root.server.message}</ErrorMessage>}
-          <TextField
-            label="メールアドレス"
-            type="email"
-            autoComplete="email"
-            error={errors.email?.message}
-            {...form.register('email')}
-          />
-          <TextField
-            label="パスワード"
-            type="password"
-            autoComplete="current-password"
-            error={errors.password?.message}
-            {...form.register('password')}
-          />
-          <Button type="submit" variant="primary" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? 'ログイン中…' : 'ログイン'}
-          </Button>
-        </form>
+        <CardContent>
+          <form onSubmit={onSubmit} noValidate className="grid gap-4">
+            {errors.root?.server && <ErrorMessage>{errors.root.server.message}</ErrorMessage>}
+            <TextField
+              label="メールアドレス"
+              type="email"
+              autoComplete="email"
+              error={errors.email?.message}
+              {...form.register('email')}
+            />
+            <TextField
+              label="パスワード"
+              type="password"
+              autoComplete="current-password"
+              error={errors.password?.message}
+              {...form.register('password')}
+            />
+            <Button type="submit" variant="default" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? 'ログイン中…' : 'ログイン'}
+            </Button>
+          </form>
+        </CardContent>
       </Card>
       <p className="mt-5 text-center text-muted-foreground">
         アカウントをお持ちでない方は{' '}

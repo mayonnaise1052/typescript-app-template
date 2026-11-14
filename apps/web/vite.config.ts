@@ -4,12 +4,17 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { msw } from 'msw/vite';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 /** Vitest から起動されたときだけ true。テスト専用の設定を本番のビルドに混ぜないために使います。 */
 const isTest = process.env.VITEST === 'true';
 
 export default defineConfig({
+  resolve: {
+    // tsconfig.json の paths（`@/*` → `src/*`）と同じ対応を、Vite にも教えます。
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
   plugins: [
     // src/routes/ のファイルから、型付きのルート一覧（src/routeTree.gen.ts）を生成します。
     // React のプラグインより前に置く必要があります。
