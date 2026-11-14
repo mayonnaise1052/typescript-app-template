@@ -47,19 +47,20 @@ Cloudflare Workers に、API とフロントエンドを 1 つの Worker とし�
 
 ## よく使うコマンド
 
-| コマンド                  | 内容                                                               |
-| ------------------------- | ------------------------------------------------------------------ |
-| `npm run dev`             | 開発サーバーを起動                                                 |
-| `npm test`                | 単体テスト・結合テスト・型のテストをすべて実行                     |
-| `npm run test:coverage`   | カバレッジ付きでテストを実行                                       |
-| `npm run test:e2e`        | ブラウザを使った E2E テストを実行                                  |
-| `npm run typecheck`       | 型チェック                                                         |
-| `npm run typecheck:watch` | 型チェックを常駐させ、保存のたびに実行（`npm run dev` に含まれる） |
-| `npm run lint`            | ESLint                                                             |
-| `npm run format`          | Prettier で整形                                                    |
-| `npm run check`           | 整形の確認・lint・型チェック・テストをまとめて実行                 |
-| `npm run db:seed`         | 教材（レッスンと問題）を DB に入れ直す                             |
-| `npm run db:generate`     | スキーマの変更からマイグレーション SQL を生成                      |
+| コマンド                  | 内容                                                                                |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| `npm run dev`             | 開発サーバーを起動                                                                  |
+| `npm test`                | 単体テスト・結合テスト・型のテストをすべて実行                                      |
+| `npm run test:coverage`   | カバレッジ付きでテストを実行                                                        |
+| `npm run test:e2e`        | ブラウザを使った E2E テストを実行                                                   |
+| `npm run typecheck`       | 型チェック                                                                          |
+| `npm run typecheck:watch` | 型チェックを常駐させ、保存のたびに実行（`npm run dev` に含まれる）                  |
+| `npm run lint`            | ESLint                                                                              |
+| `npm run csp:check`       | CSP に書いた sonner の CSS のハッシュが正しいかを検査（`npm run check` に含まれる） |
+| `npm run format`          | Prettier で整形                                                                     |
+| `npm run check`           | 整形の確認・lint・型チェック・テストをまとめて実行                                  |
+| `npm run db:seed`         | 教材（レッスンと問題）を DB に入れ直す                                              |
+| `npm run db:generate`     | スキーマの変更からマイグレーション SQL を生成                                       |
 
 テストの詳しい実行方法と書き方は [docs/testing.md](docs/testing.md) を参照してください。
 

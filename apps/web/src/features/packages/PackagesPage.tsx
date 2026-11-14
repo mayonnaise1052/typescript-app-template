@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query';
 import { PackageSearchQuerySchema, type Bookmark, type PackageInfo } from '@typequest/shared';
 import { useState, type ReactNode, type SubmitEvent } from 'react';
-import { toast } from '../../components/ui/toast';
+import { toast } from 'sonner';
 import { EmptyState, ErrorMessage, Loading } from '../../components/Feedback';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';

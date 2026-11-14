@@ -1,7 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { Note } from '@typequest/shared';
 import { useState, type SubmitEvent } from 'react';
-import { toast } from '../../components/ui/toast';
+import { toast } from 'sonner';
 import { EmptyState, ErrorMessage, Loading } from '../../components/Feedback';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Button } from '../../components/ui/button';
