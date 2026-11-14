@@ -83,6 +83,28 @@ D1 のカウンターを使った簡易的な実装です。大規模な攻撃�
 - API の応答（`apps/api/src/app.ts`）: `Content-Security-Policy: default-src 'none'`、`X-Content-Type-Options`、`Strict-Transport-Security`、`Cache-Control: no-store` など
 - 静的ファイル（`apps/web/public/_headers`）: CSP、`X-Frame-Options: DENY`、`Referrer-Policy`、`Permissions-Policy`
 
+### スタイルの CSP（`style-src`）とハッシュ
+
+画面のスタイルは同じサイトの CSS ファイルだけを許可し、インラインのスタイル（`<style>` 要素）は原則として禁止しています。例外は、通知の部品 sonner が読み込み時に追加する CSS だけです。
+
+| 方法                         | 内容                                                                      | このアプリ |
+| ---------------------------- | ------------------------------------------------------------------------- | ---------- |
+| `'unsafe-inline'` を許可する | どんなインラインのスタイルも許可する。実務で一般的                        | 採用しない |
+| ハッシュで許可する           | 許可する CSS の中身の指紋（SHA-256）だけを CSP に書く。セキュリティの推奨 | **採用**   |
+
+ハッシュは sonner の中身から計算するので、sonner を更新すると値が変わります。ずれたまま本番に出ないよう、次の 2 か所で検査しています。
+
+- `npm run csp:check`（`scripts/check-csp-hashes.mjs`）: インストール済みの sonner から正しいハッシュを計算し、`_headers` と一致するかを確かめる。`npm run check` と CI に含まれる
+- E2E テスト: 実際のブラウザで CSP 違反がコンソールに出ないことを確かめる
+
+sonner を更新して検査が失敗したら、次のコマンドで `_headers` を書き換えてください。
+
+```bash
+node scripts/check-csp-hashes.mjs --write
+```
+
+スクリプト（`script-src`）は、インラインを一切許可しません。
+
 ## エラーと情報の漏えい
 
 - 想定外のエラーの詳細はログにだけ出し、クライアントには一般的なメッセージを返します（`apps/api/src/middleware/error-handler.ts`）。
