@@ -1,80 +1,90 @@
 /**
- * エラー境界（ErrorBoundary）。
+ * エラー・読み込み中・ページなしの表示。
  *
- * React では、描画中に投げられた例外を受け止める仕組みがないと、アプリ全体が消えて
- * 画面が真っ白になります。ErrorBoundary で包んだ範囲の例外は、その範囲だけを
- * 「代わりの表示（fallback）」に置き換えて受け止められます。
- *
- * このアプリでは 2 段構えにしています（docs/specs/0001-...md の 3.1）。
- *   - AppErrorBoundary:   アプリ全体。どこにも受け止められなかった例外の最後の砦
- *   - RouteErrorBoundary: 各画面。メニューを残したまま、その画面だけをエラー表示にする
+ * 2 段構えでエラーを受け止めます（docs/specs/0001 の 3.1、0002 の 4.5）。
+ *   - 画面単位: ルーターの errorComponent（RouteErrorFallback）。メニューを残したまま、
+ *               その画面だけをエラー表示にする。別の画面へ移動すると自動で解除される
+ *   - アプリ全体: AppErrorBoundary。ルーターの外側も含め、どこにも受け止められなかった例外の最後の砦
  */
-import { QueryErrorResetBoundary } from '@tanstack/react-query';
-import { Suspense, type ReactNode } from 'react';
-import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
-import { Link, useLocation } from 'react-router';
+import { useQueryErrorResetBoundary } from '@tanstack/react-query';
+import { Link, useRouter, type ErrorComponentProps } from '@tanstack/react-router';
+import { useEffect, type ReactNode } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { errorMessage } from '../lib/api';
 import { Loading } from './Feedback';
+import { Button, buttonVariants } from './ui/button';
+import { Card } from './ui/card';
 
 /** 受け止めたエラーを記録します。本番ではここからエラー監視サービスへ送るのが一般的です。 */
 function logError(error: unknown): void {
   console.error('画面の表示中にエラーが発生しました:', error);
 }
 
-function RouteErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+/** 画面単位のエラー表示。ルーターの defaultErrorComponent として使います。 */
+export function RouteErrorFallback({ error }: ErrorComponentProps) {
+  const router = useRouter();
+  const queryErrorResetBoundary = useQueryErrorResetBoundary();
+
+  // 記録は副作用なので、描画の中ではなく useEffect で行います（同じエラーなら 1 回だけ）。
+  useEffect(() => {
+    logError(error);
+  }, [error]);
+
+  function retry() {
+    // 1. TanStack Query に「失敗したクエリをもう一度取得してよい」と伝える
+    // 2. ルーターに、この画面の読み込み（loader）からやり直させる
+    queryErrorResetBoundary.reset();
+    void router.invalidate();
+  }
+
   return (
-    <section className="card error-panel" role="alert">
-      <h1>表示できませんでした</h1>
+    <Card role="alert" className="max-w-xl border-l-4 border-l-destructive">
+      <h1 className="text-xl font-bold">表示できませんでした</h1>
       {/* API のエラーは内容を表示し、想定外のエラーは一般的な文言だけを表示します。 */}
-      <p>{errorMessage(error)}</p>
-      <div className="form-actions">
-        <button type="button" className="button primary" onClick={resetErrorBoundary}>
+      <p className="mt-1 text-muted-foreground">{errorMessage(error)}</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button variant="primary" onClick={retry}>
           再試行
-        </button>
-        <Link to="/" className="button ghost">
+        </Button>
+        <Link to="/" className={buttonVariants({ variant: 'ghost' })}>
           ダッシュボードへ戻る
         </Link>
       </div>
-    </section>
+    </Card>
   );
 }
 
-/**
- * 画面単位のエラー境界と、読み込み中の表示（Suspense）をまとめたもの。
- *
- * - QueryErrorResetBoundary: 「再試行」を押したときに、失敗したデータ取得をやり直させる
- * - resetKeys: URL のパスが変わったら（別の画面へ移動したら）エラー表示を解除する
- * - Suspense: useSuspenseQuery がデータを待っている間、共通の「読み込み中」を表示する
- */
-export function RouteBoundary({ children }: { children: ReactNode }) {
-  const { pathname } = useLocation();
+/** 画面の読み込み中の表示。ルーターの defaultPendingComponent として使います。 */
+export function RoutePending() {
+  return <Loading />;
+}
+
+/** 存在しない URL の表示。ルーターの defaultNotFoundComponent として使います。 */
+export function RouteNotFound() {
   return (
-    <QueryErrorResetBoundary>
-      {({ reset }) => (
-        <ErrorBoundary
-          FallbackComponent={RouteErrorFallback}
-          onReset={reset}
-          onError={logError}
-          resetKeys={[pathname]}
-        >
-          <Suspense fallback={<Loading />}>{children}</Suspense>
-        </ErrorBoundary>
-      )}
-    </QueryErrorResetBoundary>
+    <main className="mx-auto max-w-md px-4 py-16 text-center">
+      <h1 className="text-2xl font-bold">ページが見つかりません</h1>
+      <p className="mt-2 text-muted-foreground">URL が正しいか確認してください。</p>
+      <Link to="/" className={buttonVariants({ variant: 'primary', className: 'mt-6' })}>
+        ダッシュボードへ戻る
+      </Link>
+    </main>
   );
 }
 
 function AppErrorFallback() {
   return (
-    <main className="auth-page" role="alert">
-      <h1>問題が発生しました</h1>
-      <p>ページを読み込み直してください。解決しない場合は、時間をおいてからお試しください。</p>
-      <div className="form-actions">
-        <button type="button" className="button primary" onClick={() => window.location.reload()}>
+    <main className="mx-auto max-w-md px-4 py-16" role="alert">
+      <h1 className="text-2xl font-bold">問題が発生しました</h1>
+      <p className="mt-2 text-muted-foreground">
+        ページを読み込み直してください。解決しない場合は、時間をおいてからお試しください。
+      </p>
+      <div className="mt-6 flex gap-2">
+        <Button variant="primary" onClick={() => window.location.reload()}>
           再読み込み
-        </button>
-        {/* Router の外側でも動くよう、通常のリンクを使います。 */}
-        <a href="/" className="button ghost">
+        </Button>
+        {/* ルーターの外側でも動くよう、通常のリンクを使います。 */}
+        <a href="/" className={buttonVariants({ variant: 'ghost' })}>
           トップへ
         </a>
       </div>

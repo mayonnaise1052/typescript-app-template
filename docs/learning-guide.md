@@ -73,20 +73,24 @@ API
 
 ### 実務
 
-| 概念                                              | 見るファイル                                                                                                    |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| スキーマからの型推論（`z.infer`）                 | `packages/shared/src/schemas/` 全体                                                                             |
-| `z.input` と `z.infer` の違い                     | `packages/shared/src/schemas/note.ts`                                                                           |
-| Result 型によるエラー設計                         | `apps/api/src/services/auth-service.ts`、`apps/api/src/lib/unwrap.ts`                                           |
-| `Promise.all` による並列実行                      | `apps/api/src/services/progress-service.ts`                                                                     |
-| 依存の注入（テストしやすい設計）                  | `apps/api/src/services/index.ts`、`apps/api/src/app.ts`（`AppOptions`）                                         |
-| API の型をフロントと共有する                      | `apps/api/src/app.ts`（`AppType`）→ `apps/web/src/lib/api.ts`                                                   |
-| DB のスキーマから型を導出する                     | `apps/api/src/db/schema.ts`（`$inferSelect`）                                                                   |
-| 型のテスト                                        | `packages/shared/src/types.test-d.ts`                                                                           |
-| エラー境界と Suspense（データがある前提で書く）   | `apps/web/src/components/ErrorBoundaries.tsx`、`apps/web/src/features/lessons/queries.ts`（`useSuspenseQuery`） |
-| `useSuspenseQueries` の戻り値のタプル型と並列取得 | `apps/web/src/features/progress/DashboardPage.tsx`                                                              |
-| `key` によるコンポーネントの作り直し              | `apps/web/src/features/lessons/LessonPage.tsx`                                                                  |
-| 描画前に DOM を操作する `useLayoutEffect`         | `apps/web/src/components/ScrollToTop.tsx`（画面遷移時に先頭へスクロール）                                       |
+| 概念                                                         | 見るファイル                                                                                                    |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| スキーマからの型推論（`z.infer`）                            | `packages/shared/src/schemas/` 全体                                                                             |
+| `z.input` と `z.infer` の違い                                | `packages/shared/src/schemas/note.ts`                                                                           |
+| Result 型によるエラー設計                                    | `apps/api/src/services/auth-service.ts`、`apps/api/src/lib/unwrap.ts`                                           |
+| `Promise.all` による並列実行                                 | `apps/api/src/services/progress-service.ts`                                                                     |
+| 依存の注入（テストしやすい設計）                             | `apps/api/src/services/index.ts`、`apps/api/src/app.ts`（`AppOptions`）                                         |
+| API の型をフロントと共有する                                 | `apps/api/src/app.ts`（`AppType`）→ `apps/web/src/lib/api.ts`                                                   |
+| DB のスキーマから型を導出する                                | `apps/api/src/db/schema.ts`（`$inferSelect`）                                                                   |
+| 型のテスト                                                   | `packages/shared/src/types.test-d.ts`                                                                           |
+| エラー境界と Suspense（データがある前提で書く）              | `apps/web/src/components/ErrorBoundaries.tsx`、`apps/web/src/features/lessons/queries.ts`（`useSuspenseQuery`） |
+| `useSuspenseQueries` の戻り値のタプル型と並列取得            | `apps/web/src/features/progress/DashboardPage.tsx`                                                              |
+| 型付きのルーティング（存在しない URL はコンパイルエラー）    | `apps/web/src/routes/`、`apps/web/src/router.tsx`（`Register` による宣言のマージ）                              |
+| URL の検索条件をスキーマで検証する                           | `apps/web/src/features/notes/search.ts`、`apps/web/src/routes/_authenticated/notes.tsx`（`validateSearch`）     |
+| 画面を描画する前の認証の確認                                 | `apps/web/src/routes/_authenticated.tsx`（`beforeLoad`）                                                        |
+| パラメータが変わったら画面を作り直す                         | `apps/web/src/routes/_authenticated/lessons/$lessonId.tsx`（`remountDeps`）                                     |
+| `cva` と `VariantProps` によるバリエーションの型             | `apps/web/src/components/ui/button.tsx`                                                                         |
+| フォームの型をスキーマから導出する（`z.input` / `z.output`） | `apps/web/src/features/notes/NoteForm.tsx`、`apps/web/src/lib/form.ts`（`applyServerErrors`）                   |
 
 ## 3. tsconfig の読み方
 

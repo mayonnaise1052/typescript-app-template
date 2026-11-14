@@ -10,20 +10,26 @@ export const queryKeys = {
   lessons: ['lessons'],
   lesson: (id: string) => ['lessons', id],
   progress: ['progress'],
-  notes: (params: { page: number; q: string; lessonId: string }) => ['notes', params],
+  notes: (params: { page: number; q: string; lessonId?: string | undefined }) => ['notes', params],
   allNotes: ['notes'],
   bookmarks: ['packages', 'bookmarks'],
   packageSearch: (q: string) => ['packages', 'search', q],
 } as const;
 
-export function createQueryClient(): QueryClient {
+type QueryClientOptions = {
+  /** 401（未ログイン）を受け取ったときに呼ばれます。ルーターに認証の確認をやり直させるために使います。 */
+  onUnauthenticated?: () => void;
+};
+
+export function createQueryClient({ onUnauthenticated }: QueryClientOptions = {}): QueryClient {
   const client: QueryClient = new QueryClient({
     queryCache: new QueryCache({
       onError: (error) => {
-        // どの API でも 401 が返ったら「ログアウト状態」にします。
-        // RequireAuth がそれを検知して、ログイン画面へ移動させます。
+        // どの API でも 401 が返ったら（セッションの期限切れなど）「ログアウト状態」にし、
+        // ルーターに認証の確認をやり直させます。保護された画面ならログイン画面へ移動します。
         if (error instanceof ApiError && error.code === 'UNAUTHENTICATED') {
           client.setQueryData(queryKeys.me, null);
+          onUnauthenticated?.();
         }
       },
     }),

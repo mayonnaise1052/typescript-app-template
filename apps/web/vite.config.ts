@@ -1,4 +1,6 @@
 import babel from '@rolldown/plugin-babel';
+import tailwindcss from '@tailwindcss/vite';
+import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { msw } from 'msw/vite';
@@ -9,6 +11,9 @@ const isTest = process.env.VITEST === 'true';
 
 export default defineConfig({
   plugins: [
+    // src/routes/ のファイルから、型付きのルート一覧（src/routeTree.gen.ts）を生成します。
+    // React のプラグインより前に置く必要があります。
+    tanstackRouter({ target: 'react', autoCodeSplitting: true }),
     react(),
     // React Compiler: 再描画を減らす最適化（メモ化）を、ビルド時に自動で挿入します。
     // useMemo や useCallback を手で書く必要が減ります（docs/specs/0001-...md の 5 章）。
@@ -16,6 +21,8 @@ export default defineConfig({
     // テスト時だけ、MSW の Service Worker（偽の API 応答を返す仕組み）を配信します。
     // public/ に置かないので、本番のビルド結果には含まれません。
     ...(isTest ? [msw({ mode: 'worker-only' })] : []),
+    // Tailwind CSS: クラス名から必要な CSS だけを生成します。
+    tailwindcss(),
   ],
   server: {
     port: 5173,

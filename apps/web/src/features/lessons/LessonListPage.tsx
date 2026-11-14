@@ -1,41 +1,56 @@
+import { Link } from '@tanstack/react-router';
 import { CHAPTERS } from '@typequest/shared';
-import { Link } from 'react-router';
+import { Check } from 'lucide-react';
+import { cn } from '../../lib/utils';
 import { useLessons } from './queries';
 
 export function LessonListPage() {
-  // 読み込み中とエラーは、Layout の RouteBoundary が受け持ちます。
+  // 読み込み中とエラーは、ルーターの pendingComponent / errorComponent が受け持ちます。
   const { data: lessons } = useLessons();
 
   return (
     <>
-      <h1>レッスン</h1>
-      <p className="lead">
+      <h1 className="text-3xl font-bold">レッスン</h1>
+      <p className="mt-2 max-w-2xl text-muted-foreground">
         基礎から順に進めるのがおすすめです。各レッスンの最後にあるクイズに全問正解すると完了になります。
       </p>
       {CHAPTERS.map((chapter) => {
         const inChapter = lessons.filter((lesson) => lesson.chapterId === chapter.id);
         const done = inChapter.filter((lesson) => lesson.completed).length;
         return (
-          <section key={chapter.id} className="chapter">
-            <h2>
+          <section key={chapter.id} className="mt-9">
+            <h2 className="flex items-baseline gap-3 text-xl font-bold">
               {chapter.title}
-              <span className="count">
+              <span className="text-sm font-medium text-muted-foreground tabular-nums">
                 {done} / {inChapter.length}
               </span>
             </h2>
-            <ol className="lesson-list">
+            <ol className="mt-3 grid gap-2">
               {inChapter.map((lesson) => (
                 <li key={lesson.id}>
-                  <Link to={`/lessons/${lesson.id}`} className="lesson-link">
+                  <Link
+                    to="/lessons/$lessonId"
+                    params={{ lessonId: lesson.id }}
+                    className="flex items-start gap-3.5 rounded-lg border bg-card px-4 py-3.5 text-foreground transition-colors hover:border-primary"
+                  >
                     <span
-                      className={lesson.completed ? 'status done' : 'status'}
+                      className={cn(
+                        'grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold',
+                        lesson.completed
+                          ? 'bg-success-soft text-success'
+                          : 'bg-muted text-muted-foreground',
+                      )}
                       aria-label={lesson.completed ? '完了' : '未完了'}
                     >
-                      {lesson.completed ? '✓' : lesson.order}
+                      {lesson.completed ? (
+                        <Check className="size-4" strokeWidth={3} />
+                      ) : (
+                        lesson.order
+                      )}
                     </span>
                     <span>
-                      <span className="lesson-title">{lesson.title}</span>
-                      <span className="lesson-summary">{lesson.summary}</span>
+                      <span className="block font-semibold">{lesson.title}</span>
+                      <span className="block text-sm text-muted-foreground">{lesson.summary}</span>
                     </span>
                   </Link>
                 </li>

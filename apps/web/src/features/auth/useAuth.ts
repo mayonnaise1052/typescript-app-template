@@ -1,25 +1,30 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { LoginInput, RegisterInput, User } from '@typequest/shared';
 import { api, ApiError, unwrap } from '../../lib/api';
 import { queryKeys } from '../../lib/query';
 
 /**
- * ログイン中のユーザーを取得します。未ログインなら null です。
+ * ログイン中のユーザー。未ログインなら null です。
  * 「401 が返る」ことはここでは異常ではないので、エラーにせず null に変換します。
+ *
+ * ルーターの beforeLoad（画面を表示する前の認証の確認）と、画面の部品の両方から使うため、
+ * queryOptions として定義を 1 か所にまとめています。
  */
+export const currentUserQuery = queryOptions({
+  queryKey: queryKeys.me,
+  queryFn: async (): Promise<User | null> => {
+    try {
+      return (await unwrap(api.auth.me.$get())).user;
+    } catch (error) {
+      if (error instanceof ApiError && error.code === 'UNAUTHENTICATED') return null;
+      throw error;
+    }
+  },
+  staleTime: Infinity,
+});
+
 export function useCurrentUser() {
-  return useQuery({
-    queryKey: queryKeys.me,
-    queryFn: async (): Promise<User | null> => {
-      try {
-        return (await unwrap(api.auth.me.$get())).user;
-      } catch (error) {
-        if (error instanceof ApiError && error.code === 'UNAUTHENTICATED') return null;
-        throw error;
-      }
-    },
-    staleTime: Infinity,
-  });
+  return useQuery(currentUserQuery);
 }
 
 export function useLogin() {

@@ -1,5 +1,7 @@
 import { assertNever, type ContentBlock } from '@typequest/shared';
 import { RichText } from '../../components/RichText';
+import { CodeBlock } from '../../components/CodeBlock';
+import { cn } from '../../lib/utils';
 
 /**
  * レッスン本文のブロックを描画します。
@@ -12,7 +14,7 @@ import { RichText } from '../../components/RichText';
 function Block({ block }: { block: ContentBlock }) {
   switch (block.type) {
     case 'heading':
-      return <h2>{block.text}</h2>;
+      return <h2 className="mt-9 text-xl font-bold">{block.text}</h2>;
     case 'paragraph':
       return (
         <p>
@@ -21,16 +23,18 @@ function Block({ block }: { block: ContentBlock }) {
       );
     case 'code':
       return (
-        <figure className="code-block">
-          <pre>
-            <code>{block.code}</code>
-          </pre>
-          {block.caption && <figcaption>{block.caption}</figcaption>}
+        <figure>
+          <CodeBlock code={block.code} />
+          {block.caption && (
+            <figcaption className="mt-1.5 text-sm text-muted-foreground">
+              {block.caption}
+            </figcaption>
+          )}
         </figure>
       );
     case 'list':
       return (
-        <ul>
+        <ul className="list-disc space-y-1 pl-6">
           {block.items.map((item, index) => (
             <li key={index}>
               <RichText text={item} />
@@ -40,9 +44,16 @@ function Block({ block }: { block: ContentBlock }) {
       );
     case 'callout':
       return (
-        <aside className={`callout ${block.tone}`}>
-          <strong>{block.tone === 'warning' ? '注意' : 'ポイント'}</strong>
-          <p>
+        <aside
+          className={cn(
+            'rounded-r-lg border-l-4 px-4 py-3',
+            block.tone === 'warning'
+              ? 'border-l-amber-500 bg-warning-soft'
+              : 'border-l-primary bg-accent',
+          )}
+        >
+          <strong className="text-sm">{block.tone === 'warning' ? '注意' : 'ポイント'}</strong>
+          <p className="mt-0.5">
             <RichText text={block.text} />
           </p>
         </aside>
@@ -54,7 +65,7 @@ function Block({ block }: { block: ContentBlock }) {
 
 export function ContentRenderer({ blocks }: { blocks: readonly ContentBlock[] }) {
   return (
-    <div className="lesson-body">
+    <div className="space-y-4">
       {blocks.map((block, index) => (
         <Block key={index} block={block} />
       ))}

@@ -1,25 +1,34 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactElement } from 'react';
-import { MemoryRouter } from 'react-router';
+import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { render } from 'vitest-browser-react';
-import { RouteBoundary } from '../components/ErrorBoundaries';
+import { createAppRouter } from '../router';
 
-/**
- * 画面のコンポーネントは Router と QueryClient が無いと動かないため、
- * テスト用にそれらで包んで、本物のブラウザの中に描画するヘルパーです。
- * 実際のアプリと同じく、画面を RouteBoundary（エラー表示と読み込み中の表示）で包みます。
- */
-export function renderWithProviders(ui: ReactElement, { route = '/' }: { route?: string } = {}) {
-  const queryClient = new QueryClient({
-    // テストでは失敗をすぐ確認したいので、リトライしません。
+/** テスト用の QueryClient。失敗をすぐ確認したいので、リトライしません。 */
+export function createTestQueryClient() {
+  return new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+}
 
-  return render(
+/**
+ * アプリ本体と同じルート定義（routeTree）で、指定した URL を開いた状態を描画します。
+ *
+ * 履歴はブラウザのものではなくメモリ上のもの（createMemoryHistory）を使うので、
+ * テストごとに独立した状態で始められます。認証の確認（beforeLoad）や
+ * 表示前のデータ取得（loader）、検索条件の検証も、本番と同じように動きます。
+ * API の応答は各テストが MSW（worker.use）で用意します。
+ */
+export async function renderApp(url: string) {
+  const queryClient = createTestQueryClient();
+  const router = createAppRouter({
+    queryClient,
+    history: createMemoryHistory({ initialEntries: [url] }),
+    preloadOnIntent: false,
+  });
+  const screen = await render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[route]}>
-        <RouteBoundary>{ui}</RouteBoundary>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
+  return { screen, router, queryClient };
 }

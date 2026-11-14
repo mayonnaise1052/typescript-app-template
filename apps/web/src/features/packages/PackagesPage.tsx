@@ -1,9 +1,25 @@
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { PackageSearchQuerySchema, type PackageInfo } from '@typequest/shared';
-import { useState, type SubmitEvent } from 'react';
-import { ErrorMessage, Loading } from '../../components/Feedback';
-import { api, unwrap } from '../../lib/api';
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from '@tanstack/react-query';
+import { PackageSearchQuerySchema, type Bookmark, type PackageInfo } from '@typequest/shared';
+import { useState, type ReactNode, type SubmitEvent } from 'react';
+import { toast } from '../../components/ui/toast';
+import { EmptyState, ErrorMessage, Loading } from '../../components/Feedback';
+import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { api, errorMessage, unwrap } from '../../lib/api';
 import { queryKeys } from '../../lib/query';
+
+/** ルートの loader と画面の両方から使うので、定義を export します。 */
+export const bookmarksQuery = queryOptions({
+  queryKey: queryKeys.bookmarks,
+  queryFn: async () => (await unwrap(api.packages.bookmarks.$get())).bookmarks,
+});
 
 function usePackageSearch(q: string) {
   return useQuery({
@@ -15,24 +31,35 @@ function usePackageSearch(q: string) {
   });
 }
 
-function useBookmarks() {
-  return useSuspenseQuery({
-    queryKey: queryKeys.bookmarks,
-    queryFn: async () => (await unwrap(api.packages.bookmarks.$get())).bookmarks,
-  });
-}
-
 /** 外部サイトへのリンク。URL は文字列連結ではなく、パッケージ名をエンコードして組み立てます。 */
 function npmUrl(name: string): string {
   return `https://www.npmjs.com/package/${name.split('/').map(encodeURIComponent).join('/')}`;
 }
 
-function PackageLink({ name }: { name: string }) {
+function PackageCard({ pkg, action }: { pkg: PackageInfo | Bookmark; action: ReactNode }) {
   return (
-    // rel="noopener noreferrer": 開いた先のページから、このページを操作されないようにします。
-    <a href={npmUrl(name)} target="_blank" rel="noopener noreferrer">
-      {name}
-    </a>
+    <li>
+      <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h3 className="font-semibold [overflow-wrap:anywhere]">
+            {/* rel="noopener noreferrer": 開いた先のページから、このページを操作されないようにします。 */}
+            <a
+              href={npmUrl(pkg.name)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline underline-offset-4"
+            >
+              {pkg.name}
+            </a>{' '}
+            <small className="font-medium text-muted-foreground">{pkg.version}</small>
+          </h3>
+          <p className="mt-0.5 text-sm text-muted-foreground [overflow-wrap:anywhere]">
+            {pkg.description || '（説明なし）'}
+          </p>
+        </div>
+        {action}
+      </Card>
+    </li>
   );
 }
 
@@ -42,20 +69,28 @@ export function PackagesPage() {
   const [inputError, setInputError] = useState<string>();
 
   const search = usePackageSearch(query);
-  // ブックマーク一覧は表示に必須なので Suspense で待ちます。検索結果は利用者の操作で
-  // 変わるので、従来どおり useQuery でその場に読み込み中を表示します。
-  const { data: bookmarks } = useBookmarks();
+  // ブックマーク一覧は表示に必須なので Suspense で待ちます（ルートの loader が先に取得済み）。
+  // 検索結果は利用者の操作で変わるので、従来どおり useQuery でその場に読み込み中を表示します。
+  const { data: bookmarks } = useSuspenseQuery(bookmarksQuery);
   const invalidateBookmarks = () =>
     queryClient.invalidateQueries({ queryKey: queryKeys.bookmarks });
 
   const addBookmark = useMutation({
     mutationFn: (pkg: PackageInfo) => unwrap(api.packages.bookmarks.$post({ json: pkg })),
-    onSuccess: invalidateBookmarks,
+    onSuccess: async ({ bookmark }) => {
+      await invalidateBookmarks();
+      toast.success(`${bookmark.name} をブックマークしました`);
+    },
+    onError: (error) => toast.error(errorMessage(error)),
   });
   const removeBookmark = useMutation({
-    mutationFn: (bookmarkId: string) =>
-      unwrap(api.packages.bookmarks[':bookmarkId'].$delete({ param: { bookmarkId } })),
-    onSuccess: invalidateBookmarks,
+    mutationFn: (bookmark: Bookmark) =>
+      unwrap(api.packages.bookmarks[':bookmarkId'].$delete({ param: { bookmarkId: bookmark.id } })),
+    onSuccess: async (_result, bookmark) => {
+      await invalidateBookmarks();
+      toast.success(`${bookmark.name} のブックマークを外しました`);
+    },
+    onError: (error) => toast.error(errorMessage(error)),
   });
 
   function handleSearch(event: SubmitEvent<HTMLFormElement>) {
@@ -75,88 +110,81 @@ export function PackagesPage() {
 
   return (
     <>
-      <h1>パッケージ</h1>
-      <p className="lead">
+      <h1 className="text-3xl font-bold">パッケージ</h1>
+      <p className="mt-2 max-w-2xl text-muted-foreground">
         npm レジストリを検索して、気になるパッケージをブックマークできます。検索は、このアプリの API
         が外部の API を呼び出して行います。
       </p>
 
-      <form onSubmit={handleSearch} className="toolbar" role="search">
-        <label className="visually-hidden" htmlFor="package-search">
+      <form onSubmit={handleSearch} className="mt-5 flex flex-wrap gap-2" role="search">
+        <label className="sr-only" htmlFor="package-search">
           パッケージを検索
         </label>
-        <input
+        <Input
           id="package-search"
           name="q"
           type="search"
           placeholder="例: zod"
           maxLength={100}
           aria-invalid={inputError ? true : undefined}
+          className="w-auto flex-[1_1_14rem]"
         />
-        <button type="submit" className="button primary">
+        <Button type="submit" variant="primary">
           検索
-        </button>
+        </Button>
       </form>
-      {inputError && <ErrorMessage>{inputError}</ErrorMessage>}
-      {addBookmark.error && <ErrorMessage error={addBookmark.error} />}
+      {inputError && <ErrorMessage className="mt-3">{inputError}</ErrorMessage>}
 
       {query && (
-        <section>
-          <h2>「{query}」の検索結果</h2>
+        <section className="mt-8">
+          <h2 className="mb-3 text-xl font-bold">「{query}」の検索結果</h2>
           {search.isPending ? (
             <Loading label="検索中…" />
           ) : search.error ? (
             <ErrorMessage error={search.error} />
           ) : search.data.length === 0 ? (
-            <p className="empty">一致するパッケージはありませんでした。</p>
+            <EmptyState>一致するパッケージはありませんでした。</EmptyState>
           ) : (
-            <ul className="package-list">
+            <ul className="grid gap-3">
               {search.data.map((pkg) => (
-                <li key={pkg.name} className="card package">
-                  <div>
-                    <h3>
-                      <PackageLink name={pkg.name} /> <small>{pkg.version}</small>
-                    </h3>
-                    <p>{pkg.description || '（説明なし）'}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="button"
-                    disabled={bookmarkedNames.has(pkg.name) || addBookmark.isPending}
-                    onClick={() => addBookmark.mutate(pkg)}
-                  >
-                    {bookmarkedNames.has(pkg.name) ? 'ブックマーク済み' : 'ブックマーク'}
-                  </button>
-                </li>
+                <PackageCard
+                  key={pkg.name}
+                  pkg={pkg}
+                  action={
+                    <Button
+                      disabled={bookmarkedNames.has(pkg.name) || addBookmark.isPending}
+                      onClick={() => addBookmark.mutate(pkg)}
+                    >
+                      {bookmarkedNames.has(pkg.name) ? 'ブックマーク済み' : 'ブックマーク'}
+                    </Button>
+                  }
+                />
               ))}
             </ul>
           )}
         </section>
       )}
 
-      <section>
-        <h2>ブックマーク</h2>
+      <section className="mt-8">
+        <h2 className="mb-3 text-xl font-bold">ブックマーク</h2>
         {bookmarks.length === 0 ? (
-          <p className="empty">まだブックマークがありません。</p>
+          <EmptyState>まだブックマークがありません。</EmptyState>
         ) : (
-          <ul className="package-list">
+          <ul className="grid gap-3">
             {bookmarks.map((bookmark) => (
-              <li key={bookmark.id} className="card package">
-                <div>
-                  <h3>
-                    <PackageLink name={bookmark.name} /> <small>{bookmark.version}</small>
-                  </h3>
-                  <p>{bookmark.description || '（説明なし）'}</p>
-                </div>
-                <button
-                  type="button"
-                  className="button ghost danger"
-                  disabled={removeBookmark.isPending}
-                  onClick={() => removeBookmark.mutate(bookmark.id)}
-                >
-                  削除
-                </button>
-              </li>
+              <PackageCard
+                key={bookmark.id}
+                pkg={bookmark}
+                action={
+                  <Button
+                    variant="ghost-destructive"
+                    disabled={removeBookmark.isPending}
+                    onClick={() => removeBookmark.mutate(bookmark)}
+                  >
+                    削除
+                  </Button>
+                }
+              />
             ))}
           </ul>
         )}
