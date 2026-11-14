@@ -12,7 +12,7 @@ TypeScript を学ぶための学習アプリです。アプリでレッスンと
 | 層             | 採用技術                                                          |
 | -------------- | ----------------------------------------------------------------- |
 | フロントエンド | React / Vite / TanStack Router / TanStack Query / React Hook Form |
-| 見た目         | Tailwind CSS / Base UI（shadcn/ui 方式の部品）                    |
+| 見た目         | Tailwind CSS / shadcn/ui（Base UI 版）                            |
 | API            | Hono（Cloudflare Workers）                                        |
 | データベース   | Cloudflare D1（SQLite 互換）/ Drizzle ORM                         |
 | 検証と型の共有 | Zod（`packages/shared`）                                          |
@@ -84,7 +84,7 @@ apps/web/               フロントエンド（React）
   src/routes/             URL ごとのファイル（認証の確認・表示前のデータ取得・検索条件の検証）
   src/routeTree.gen.ts    routes/ から自動生成される型付きのルート一覧（手で編集しない）
   src/features/           機能ごとの画面（auth / lessons / quiz / progress / notes / packages）
-  src/components/ui/      UI 部品（ボタン・入力欄・ダイアログ・通知など）
+  src/components/ui/      shadcn/ui の部品（`npx shadcn add 部品名` で追加。設定は apps/web/components.json）
   src/components/         共通の部品
   src/lib/                型付き API クライアントなど
 e2e/                    Playwright の E2E テスト

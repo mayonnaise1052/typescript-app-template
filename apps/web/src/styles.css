@@ -1,32 +1,48 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+/* shadcn/ui の部品が使う追加のユーティリティ（data-open などの状態の指定） */
+@import 'shadcn/tailwind.css';
+/* 英数字用のフォント（shadcn/ui の初期設定）。ファイルはビルドに含まれ、同じサイトから配信されます。 */
+@import '@fontsource-variable/geist';
+
+/*
+ * ダークモードは OS の設定（prefers-color-scheme）に従います。
+ * shadcn/ui の部品に書かれた `dark:` の指定も、この条件で有効になります。
+ */
+@custom-variant dark (@media (prefers-color-scheme: dark));
 
 /*
  * デザイントークン。色はここだけで定義し、部品は `bg-primary` や `text-muted-foreground` の
- * ように役割の名前で参照します。ダークモードは OS の設定に従って値だけを切り替えます。
+ * ように役割の名前で参照します。名前は shadcn/ui の決まりに合わせ、値はこのアプリの配色にしています。
  */
 :root {
   --background: oklch(0.975 0.004 250);
   --foreground: oklch(0.24 0.02 255);
   --card: oklch(1 0 0);
   --card-foreground: var(--foreground);
-  --muted: oklch(0.945 0.008 250);
-  --muted-foreground: oklch(0.5 0.02 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
   --primary: oklch(0.52 0.13 252);
   --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.945 0.008 250);
+  --secondary-foreground: oklch(0.3 0.02 255);
+  --muted: oklch(0.945 0.008 250);
+  --muted-foreground: oklch(0.5 0.02 255);
   --accent: oklch(0.94 0.03 252);
   --accent-foreground: oklch(0.42 0.13 252);
-  --success: oklch(0.52 0.12 155);
-  --success-soft: oklch(0.95 0.04 155);
   --destructive: oklch(0.53 0.18 27);
-  --destructive-soft: oklch(0.95 0.03 27);
-  --warning-soft: oklch(0.96 0.05 85);
   --border: oklch(0.89 0.01 250);
   --input: oklch(0.86 0.01 250);
   --ring: oklch(0.6 0.13 252);
+  --radius: 0.625rem;
+
+  /* このアプリ独自のトークン */
+  --success: oklch(0.52 0.12 155);
+  --success-soft: oklch(0.95 0.04 155);
+  --destructive-soft: oklch(0.95 0.03 27);
+  --warning-soft: oklch(0.96 0.05 85);
   --code: oklch(0.24 0.02 255);
   --code-foreground: oklch(0.94 0.01 250);
-  --radius: 0.5rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -34,20 +50,24 @@
     --background: oklch(0.18 0.015 255);
     --foreground: oklch(0.93 0.01 250);
     --card: oklch(0.22 0.017 255);
-    --muted: oklch(0.27 0.018 255);
-    --muted-foreground: oklch(0.72 0.02 255);
+    --popover: oklch(0.22 0.017 255);
     --primary: oklch(0.72 0.12 252);
     --primary-foreground: oklch(0.18 0.03 255);
+    --secondary: oklch(0.27 0.018 255);
+    --secondary-foreground: oklch(0.93 0.01 250);
+    --muted: oklch(0.27 0.018 255);
+    --muted-foreground: oklch(0.72 0.02 255);
     --accent: oklch(0.3 0.05 252);
     --accent-foreground: oklch(0.82 0.1 252);
-    --success: oklch(0.76 0.13 155);
-    --success-soft: oklch(0.29 0.05 155);
     --destructive: oklch(0.74 0.14 27);
-    --destructive-soft: oklch(0.3 0.06 27);
-    --warning-soft: oklch(0.32 0.05 85);
     --border: oklch(0.33 0.02 255);
     --input: oklch(0.38 0.02 255);
     --ring: oklch(0.72 0.12 252);
+
+    --success: oklch(0.76 0.13 155);
+    --success-soft: oklch(0.29 0.05 155);
+    --destructive-soft: oklch(0.3 0.06 27);
+    --warning-soft: oklch(0.32 0.05 85);
     --code: oklch(0.14 0.015 255);
   }
 }
@@ -58,32 +78,46 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-success: var(--success);
-  --color-success-soft: var(--success-soft);
   --color-destructive: var(--destructive);
-  --color-destructive-soft: var(--destructive-soft);
-  --color-warning-soft: var(--warning-soft);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-warning-soft: var(--warning-soft);
   --color-code: var(--code);
   --color-code-foreground: var(--code-foreground);
-  --radius-sm: calc(var(--radius) - 2px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 4px);
-  --font-sans: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Geist は英数字だけを持つので、日本語は後ろに並べた日本語フォントで表示されます。 */
+  --font-sans:
+    'Geist Variable', system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP',
+    sans-serif;
+  --font-heading: var(--font-sans);
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
 
   html {
@@ -92,10 +126,6 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans leading-relaxed antialiased;
-  }
-
-  :focus-visible {
-    @apply outline-2 outline-offset-2 outline-ring;
+    @apply bg-background font-sans leading-relaxed text-foreground antialiased;
   }
 }

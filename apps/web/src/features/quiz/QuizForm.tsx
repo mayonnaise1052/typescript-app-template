@@ -86,10 +86,12 @@ export function QuizForm({
               ? ' — 全問正解です。このレッスンは完了しました。'
               : ' — 解説を読んで、もう一度挑戦してみましょう。'}
           </p>
-          <Button onClick={handleRetry}>もう一度挑戦する</Button>
+          <Button variant="outline" onClick={handleRetry}>
+            もう一度挑戦する
+          </Button>
         </div>
       ) : (
-        <Button type="submit" variant="primary" disabled={isSubmitting}>
+        <Button type="submit" variant="default" disabled={isSubmitting}>
           {isSubmitting ? '採点中…' : '解答する'}
         </Button>
       )}

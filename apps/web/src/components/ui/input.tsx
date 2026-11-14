@@ -1,23 +1,19 @@
-import type { ComponentProps } from 'react';
-import { cn } from '../../lib/utils';
+import * as React from 'react';
+import { Input as InputPrimitive } from '@base-ui/react/input';
+import { cn } from 'cn';
 
-export const fieldControlClass =
-  'w-full min-w-0 rounded-md border border-input bg-card px-3 py-2 text-base text-foreground placeholder:text-muted-foreground disabled:opacity-55 aria-invalid:border-destructive md:text-sm';
-
-export function Input({ className, ...props }: ComponentProps<'input'>) {
-  return <input className={cn(fieldControlClass, 'h-10', className)} {...props} />;
+function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
+  return (
+    <InputPrimitive
+      type={type}
+      data-slot="input"
+      className={cn(
+        'h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40',
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
-export function Textarea({ className, ...props }: ComponentProps<'textarea'>) {
-  return <textarea className={cn(fieldControlClass, 'min-h-28 resize-y', className)} {...props} />;
-}
-
-/** ブラウザ標準の <select> を、入力欄と同じ見た目に整えたもの。 */
-export function NativeSelect({ className, ...props }: ComponentProps<'select'>) {
-  return <select className={cn(fieldControlClass, 'h-10 pr-8', className)} {...props} />;
-}
-
-export function Label({ className, ...props }: ComponentProps<'label'>) {
-  // eslint の jsx-a11y は使っていないため、htmlFor は呼び出し側で必ず指定します。
-  return <label className={cn('text-sm font-semibold', className)} {...props} />;
-}
+export { Input };

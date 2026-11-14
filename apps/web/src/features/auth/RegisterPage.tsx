@@ -6,7 +6,7 @@ import type { z } from 'zod';
 import { ErrorMessage } from '../../components/Feedback';
 import { TextField } from '../../components/TextField';
 import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
+import { Card, CardContent } from '../../components/ui/card';
 import { applyServerErrors } from '../../lib/form';
 import { useRegister } from './useAuth';
 
@@ -35,33 +35,35 @@ export function RegisterPage() {
     <>
       <h1 className="mb-6 text-center text-2xl font-bold">新規登録</h1>
       <Card>
-        <form onSubmit={onSubmit} noValidate className="grid gap-4">
-          {errors.root?.server && <ErrorMessage>{errors.root.server.message}</ErrorMessage>}
-          <TextField
-            label="表示名"
-            autoComplete="nickname"
-            error={errors.displayName?.message}
-            {...form.register('displayName')}
-          />
-          <TextField
-            label="メールアドレス"
-            type="email"
-            autoComplete="email"
-            error={errors.email?.message}
-            {...form.register('email')}
-          />
-          <TextField
-            label="パスワード"
-            type="password"
-            autoComplete="new-password"
-            hint={`${PASSWORD_MIN_LENGTH} 文字以上`}
-            error={errors.password?.message}
-            {...form.register('password')}
-          />
-          <Button type="submit" variant="primary" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? '登録中…' : '登録する'}
-          </Button>
-        </form>
+        <CardContent>
+          <form onSubmit={onSubmit} noValidate className="grid gap-4">
+            {errors.root?.server && <ErrorMessage>{errors.root.server.message}</ErrorMessage>}
+            <TextField
+              label="表示名"
+              autoComplete="nickname"
+              error={errors.displayName?.message}
+              {...form.register('displayName')}
+            />
+            <TextField
+              label="メールアドレス"
+              type="email"
+              autoComplete="email"
+              error={errors.email?.message}
+              {...form.register('email')}
+            />
+            <TextField
+              label="パスワード"
+              type="password"
+              autoComplete="new-password"
+              hint={`${PASSWORD_MIN_LENGTH} 文字以上`}
+              error={errors.password?.message}
+              {...form.register('password')}
+            />
+            <Button type="submit" variant="default" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? '登録中…' : '登録する'}
+            </Button>
+          </form>
+        </CardContent>
       </Card>
       <p className="mt-5 text-center text-muted-foreground">
         すでにアカウントをお持ちの方は{' '}
