@@ -171,6 +171,28 @@ test('合格後に次のレッスンへ進むと、前のレッスンの結果�
   await expect(page.getByRole('button', { name: '解答する' })).toBeEnabled();
 });
 
+test('ページの下までスクロールしてから次のレッスンへ進むと、新しいレッスンの先頭が表示される', async ({
+  page,
+}) => {
+  await register(page);
+  await page.goto('/lessons/types-and-inference');
+  await expect(page.getByRole('heading', { level: 1, name: '型注釈と型推論' })).toBeVisible();
+
+  // 合格してから、ページの一番下までスクロールする
+  await page.getByRole('radio', { name: "'ready'" }).check();
+  await page.getByRole('radio', { name: '型はコンパイル時にだけ存在し、実行時には消える' }).check();
+  await page.getByRole('button', { name: '解答する' }).click();
+  await expect(page.getByText('2 問中 2 問正解')).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+  await page.getByRole('link', { name: '次のレッスン →' }).click();
+
+  const heading = page.getByRole('heading', { level: 1, name: '関数の型' });
+  await expect(heading).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
 test('存在しないレッスンを開くとエラーが表示され、メニューから別の画面へ移動できる', async ({
   page,
 }) => {
