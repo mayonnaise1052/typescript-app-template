@@ -30,12 +30,14 @@ npm run dev     # 開発サーバーの起動
 
 ブラウザで <http://localhost:5173> を開き、「新規登録」からアカウントを作成してください。
 
-`npm run dev` は 2 つのサーバーを同時に起動します。
+`npm run dev` は 2 つのサーバーと、型チェックの常駐プロセスを同時に起動します。
 
 | サーバー     | URL                     | 役割                                     |
 | ------------ | ----------------------- | ---------------------------------------- |
 | Vite         | <http://localhost:5173> | フロントエンド。`/api` を下の API へ転送 |
 | wrangler dev | <http://localhost:8787> | API。Workers と D1 を手元で再現          |
+
+開発サーバーは TypeScript の型を取り除いて動かすだけで、型が正しいかは調べません（速さのため）。そのため、ターミナルの `[types]` の行に表示される型チェックの結果を見ながら開発してください。ファイルを保存するたびに、約 1 秒で結果が更新されます。
 
 ## デプロイ
 
@@ -43,18 +45,19 @@ Cloudflare Workers に、API とフロントエンドを 1 つの Worker とし�
 
 ## よく使うコマンド
 
-| コマンド                | 内容                                               |
-| ----------------------- | -------------------------------------------------- |
-| `npm run dev`           | 開発サーバーを起動                                 |
-| `npm test`              | 単体テスト・結合テスト・型のテストをすべて実行     |
-| `npm run test:coverage` | カバレッジ付きでテストを実行                       |
-| `npm run test:e2e`      | ブラウザを使った E2E テストを実行                  |
-| `npm run typecheck`     | 型チェック                                         |
-| `npm run lint`          | ESLint                                             |
-| `npm run format`        | Prettier で整形                                    |
-| `npm run check`         | 整形の確認・lint・型チェック・テストをまとめて実行 |
-| `npm run db:seed`       | 教材（レッスンと問題）を DB に入れ直す             |
-| `npm run db:generate`   | スキーマの変更からマイグレーション SQL を生成      |
+| コマンド                  | 内容                                                               |
+| ------------------------- | ------------------------------------------------------------------ |
+| `npm run dev`             | 開発サーバーを起動                                                 |
+| `npm test`                | 単体テスト・結合テスト・型のテストをすべて実行                     |
+| `npm run test:coverage`   | カバレッジ付きでテストを実行                                       |
+| `npm run test:e2e`        | ブラウザを使った E2E テストを実行                                  |
+| `npm run typecheck`       | 型チェック                                                         |
+| `npm run typecheck:watch` | 型チェックを常駐させ、保存のたびに実行（`npm run dev` に含まれる） |
+| `npm run lint`            | ESLint                                                             |
+| `npm run format`          | Prettier で整形                                                    |
+| `npm run check`           | 整形の確認・lint・型チェック・テストをまとめて実行                 |
+| `npm run db:seed`         | 教材（レッスンと問題）を DB に入れ直す                             |
+| `npm run db:generate`     | スキーマの変更からマイグレーション SQL を生成                      |
 
 テストの詳しい実行方法と書き方は [docs/testing.md](docs/testing.md) を参照してください。
 
