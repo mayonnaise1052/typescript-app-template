@@ -47,20 +47,41 @@ type RequestOptions = {
   origin?: string | false;
 };
 
+type TestClientOptions = AppOptions & {
+  /** 本物の代わりに使うバインディング（偽のレート制限など）。 */
+  bindings?: Partial<Cloudflare.Env>;
+};
+
+let nextClientNumber = 1;
+
+/** テスト用の接続元 IP アドレス（試験用に予約された 198.18.0.0/15 の範囲）を順に割り当てます。 */
+function nextClientIp(): string {
+  const n = nextClientNumber++;
+  return `198.18.${Math.floor(n / 256) % 256}.${n % 256}`;
+}
+
 /**
  * ブラウザの代わりをするテスト用クライアント。
  * Set-Cookie で受け取ったセッション Cookie を覚えておき、次のリクエストで送ります。
+ *
+ * クライアントごとに別の接続元 IP アドレスを名乗ります。レート制限の第 1 段（本物の
+ * Rate Limiting バインディング）の数はテストの間で持ち越されるので、別々にしておかないと
+ * 別のテストのリクエストまで同じ接続元として数えられてしまいます。
  */
 export class TestClient {
   private cookie: string | undefined;
   private readonly app: ReturnType<typeof createApp>;
+  private readonly env: Cloudflare.Env;
+  readonly clientIp = nextClientIp();
 
-  constructor(options: AppOptions = {}) {
+  constructor({ bindings, ...options }: TestClientOptions = {}) {
     this.app = createApp(options);
+    this.env = { ...env, ...bindings };
   }
 
   async request(method: string, path: string, options: RequestOptions = {}): Promise<Response> {
     const headers = new Headers(options.headers);
+    if (!headers.has('CF-Connecting-IP')) headers.set('CF-Connecting-IP', this.clientIp);
     if (options.origin !== false) headers.set('Origin', options.origin ?? ORIGIN);
     if (this.cookie) headers.set('Cookie', this.cookie);
     if (options.body !== undefined) headers.set('Content-Type', 'application/json');
@@ -77,7 +98,7 @@ export class TestClient {
               ? options.body
               : JSON.stringify(options.body),
       },
-      env,
+      this.env,
     );
 
     const setCookie = response.headers.get('Set-Cookie');

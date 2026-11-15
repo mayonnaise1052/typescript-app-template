@@ -8,6 +8,8 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
     interface Env {
       DB: D1Database;
+      AUTH_RATE_LIMITER: RateLimit;
+      PACKAGE_SEARCH_RATE_LIMITER: RateLimit;
       ALLOWED_ORIGINS: string;
       TEST_MIGRATIONS: D1Migration[];
     }
