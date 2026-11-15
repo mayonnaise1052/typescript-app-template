@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { RATE_LIMITS } from '../src/config/config';
 import { parseConfig } from '../src/config/config';
@@ -54,50 +55,124 @@ describe('CSRF 対策（Origin の検査）', () => {
   });
 });
 
-describe('レート制限', () => {
+describe('レート制限（第 2 段: D1 のカウンター）', () => {
+  const failedLogin = (client: TestClient, ip?: string) =>
+    client.post(
+      '/api/auth/login',
+      { email: 'nobody@example.com', password: 'wrong-password' },
+      ip === undefined ? {} : { headers: { 'CF-Connecting-IP': ip } },
+    );
+
   it('ログインの試行回数が上限を超えると 429 を返す', async () => {
     const client = new TestClient();
-    const attempt = () =>
-      client.post(
-        '/api/auth/login',
-        { email: 'nobody@example.com', password: 'wrong-password' },
-        { headers: { 'CF-Connecting-IP': '203.0.113.1' } },
-      );
 
     for (let i = 0; i < RATE_LIMITS.auth.limit; i++) {
-      expect((await attempt()).status).toBe(401);
+      expect((await failedLogin(client)).status).toBe(401);
     }
-    const blocked = await attempt();
+    const blocked = await failedLogin(client);
 
     await expectError(blocked, 429, 'RATE_LIMITED');
     expect(Number(blocked.headers.get('Retry-After'))).toBeGreaterThan(0);
   });
 
   it('接続元ごとに別々に数える', async () => {
-    const client = new TestClient();
-    const attempt = (ip: string) =>
-      client.post(
-        '/api/auth/login',
-        { email: 'nobody@example.com', password: 'wrong-password' },
-        { headers: { 'CF-Connecting-IP': ip } },
-      );
+    const attacker = new TestClient();
+    const other = new TestClient();
 
-    for (let i = 0; i <= RATE_LIMITS.auth.limit; i++) await attempt('203.0.113.1');
+    for (let i = 0; i <= RATE_LIMITS.auth.limit; i++) await failedLogin(attacker);
 
-    expect((await attempt('203.0.113.2')).status).toBe(401);
+    expect((await failedLogin(attacker)).status).toBe(429);
+    expect((await failedLogin(other)).status).toBe(401);
   });
 
   it('時間が経って次のウィンドウに入ると、再び受け付ける', async () => {
     let now = new Date('2026-01-01T00:00:00Z');
     const client = new TestClient({ now: () => now });
-    const attempt = () =>
-      client.post('/api/auth/login', { email: 'nobody@example.com', password: 'wrong-password' });
 
-    for (let i = 0; i <= RATE_LIMITS.auth.limit; i++) await attempt();
-    expect((await attempt()).status).toBe(429);
+    for (let i = 0; i <= RATE_LIMITS.auth.limit; i++) await failedLogin(client);
+    expect((await failedLogin(client)).status).toBe(429);
 
     now = new Date(now.getTime() + RATE_LIMITS.auth.windowSeconds * 1000);
-    expect((await attempt()).status).toBe(401);
+    expect((await failedLogin(client)).status).toBe(401);
+  });
+});
+
+/** 呼ばれた鍵を記録し、決めた結果を返す偽の Rate Limiting バインディング。 */
+function fakeLimiter(success: boolean) {
+  const keys: string[] = [];
+  const limiter: RateLimit = {
+    limit: ({ key }) => {
+      keys.push(key);
+      return Promise.resolve({ success });
+    },
+  };
+  return { limiter, keys };
+}
+
+async function countRateLimitRows(): Promise<number> {
+  const row = await env.DB.prepare('SELECT COUNT(*) AS count FROM rate_limits').first<{
+    count: number;
+  }>();
+  return row?.count ?? 0;
+}
+
+describe('レート制限（第 1 段: Rate Limiting バインディング）', () => {
+  it('第 1 段で止めると 429 と Retry-After を返し、D1 には書き込まない', async () => {
+    const { limiter } = fakeLimiter(false);
+    const client = new TestClient({ bindings: { AUTH_RATE_LIMITER: limiter } });
+
+    const blocked = await client.post('/api/auth/login', {
+      email: 'nobody@example.com',
+      password: 'wrong-password',
+    });
+
+    await expectError(blocked, 429, 'RATE_LIMITED');
+    expect(blocked.headers.get('Retry-After')).toBe(String(RATE_LIMITS.auth.windowSeconds));
+    expect(await countRateLimitRows()).toBe(0);
+  });
+
+  it('第 1 段を通ったリクエストだけを第 2 段（D1）で数える', async () => {
+    const { limiter } = fakeLimiter(true);
+    const client = new TestClient({ bindings: { AUTH_RATE_LIMITER: limiter } });
+
+    await client.post('/api/auth/login', { email: 'nobody@example.com', password: 'x' });
+
+    expect(await countRateLimitRows()).toBe(1);
+  });
+
+  it('対象ごとのバインディングに、接続元の IP アドレスを鍵として渡す', async () => {
+    const auth = fakeLimiter(true);
+    const search = fakeLimiter(true);
+    const client = new TestClient({
+      bindings: { AUTH_RATE_LIMITER: auth.limiter, PACKAGE_SEARCH_RATE_LIMITER: search.limiter },
+      fetch: () => Promise.resolve(Response.json({ objects: [], total: 0 })),
+    });
+    await client.register();
+
+    await client.post('/api/auth/login', DEFAULT_USER);
+    await client.get('/api/packages/search?q=zod');
+
+    expect(auth.keys).toEqual([client.clientIp, client.clientIp]);
+    expect(search.keys).toEqual([client.clientIp]);
+  });
+
+  it('登録・ログイン・検索以外では第 1 段を呼ばない', async () => {
+    const auth = fakeLimiter(true);
+    const client = new TestClient({ bindings: { AUTH_RATE_LIMITER: auth.limiter } });
+
+    await client.get('/api/health');
+    await client.get('/api/lessons');
+
+    expect(auth.keys).toEqual([]);
+  });
+
+  it('本物のバインディングが Worker に設定されていて、普通のリクエストを受け付ける', async () => {
+    const key = `binding-check-${crypto.randomUUID()}`;
+
+    await expect(env.AUTH_RATE_LIMITER.limit({ key })).resolves.toEqual({ success: true });
+    await expect(env.PACKAGE_SEARCH_RATE_LIMITER.limit({ key })).resolves.toEqual({
+      success: true,
+    });
   });
 });
 

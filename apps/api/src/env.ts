@@ -1,4 +1,4 @@
-import type { D1Database } from '@cloudflare/workers-types';
+import type { D1Database, RateLimit } from '@cloudflare/workers-types';
 import type { User } from '@typequest/shared';
 import type { AppConfig } from './config/config';
 import type { Services } from './services';
@@ -9,6 +9,9 @@ import type { Services } from './services';
  */
 export type Bindings = {
   DB: D1Database;
+  /** レート制限の第 1 段（wrangler.jsonc の ratelimits）。 */
+  AUTH_RATE_LIMITER: RateLimit;
+  PACKAGE_SEARCH_RATE_LIMITER: RateLimit;
   ALLOWED_ORIGINS?: string;
 };
 
