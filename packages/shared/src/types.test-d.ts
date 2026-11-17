@@ -39,7 +39,9 @@ describe('Branded Types', () => {
 
 describe('as const から導出したユニオン型', () => {
   it('ChapterId は 4 つのリテラルのユニオンになる', () => {
-    expectTypeOf<ChapterId>().toEqualTypeOf<'basics' | 'intermediate' | 'advanced' | 'practical'>();
+    expectTypeOf<ChapterId>().toEqualTypeOf<
+      'intro' | 'basics' | 'intermediate' | 'advanced' | 'practical'
+    >();
   });
 
   it('ErrorStatus は number ではなくリテラルのユニオンになる', () => {

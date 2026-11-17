@@ -4,13 +4,14 @@ import { PublicQuestionSchema } from './quiz';
 
 /** 章の定義。`as const` により id がリテラル型として保たれます。 */
 export const CHAPTERS = [
+  { id: 'intro', title: '第0章 はじめに' },
   { id: 'basics', title: '第1章 基礎' },
   { id: 'intermediate', title: '第2章 中級' },
   { id: 'advanced', title: '第3章 上級' },
   { id: 'practical', title: '第4章 実務' },
 ] as const;
 
-/** 'basics' | 'intermediate' | 'advanced' | 'practical' */
+/** 'intro' | 'basics' | 'intermediate' | 'advanced' | 'practical' */
 export type ChapterId = (typeof CHAPTERS)[number]['id'];
 
 // CHAPTERS から id のタプルを作る。map の結果は string[] に広がってしまうため、

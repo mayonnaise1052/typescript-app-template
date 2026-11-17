@@ -32,16 +32,24 @@ API
 
 アプリ内の各レッスンにも同じ情報がありますが、一覧にまとめます。
 
+### はじめに
+
+| 概念                              | 見るファイル                                          |
+| --------------------------------- | ----------------------------------------------------- |
+| 型の検査（実行する前に行う）      | `package.json`（`typecheck`）、`.githooks/pre-commit` |
+| JavaScript の書き方（`?.`・`??`） | `apps/api/src/services/lesson-service.ts`             |
+
 ### 基礎
 
 | 概念                       | 見るファイル                                                                       |
 | -------------------------- | ---------------------------------------------------------------------------------- |
-| 型注釈と型推論             | `apps/api/src/config/config.ts`                                                    |
+| 基本の型と型推論           | `apps/api/src/domain/streak.ts`                                                    |
 | 関数の型・既定値つき引数   | `apps/api/src/domain/streak.ts`、`apps/api/src/lib/npm-registry.ts`（`FetchLike`） |
 | オブジェクト型             | `apps/api/src/env.ts`                                                              |
 | `readonly` な配列          | `apps/api/src/domain/grading.ts`                                                   |
 | 添字アクセスと `undefined` | `apps/api/src/services/lesson-service.ts`                                          |
 | ユニオン型・リテラル型     | `packages/shared/src/errors.ts`（`ErrorCode`）                                     |
+| `null` を含む型と絞り込み  | `packages/shared/src/schemas/note.ts`（`lessonId`）                                |
 
 ### 中級
 
@@ -118,7 +126,7 @@ API
 
 やさしい順に並べています。いずれも「テストを先に書く → 実装する」の順で進めるのがおすすめです。
 
-1. **レッスンを 1 本追加する** — `apps/api/src/content/` に追記し、`npm run db:seed`。`content.test.ts` が教材の形式を検査してくれます。
+1. **レッスンを 1 本追加する** — `apps/api/src/content/` に追記し、`npm run db:seed`。`content.test.ts` が教材の形式を検査してくれます。第0章・第1章に足す場合は、そのレッスンまでに習った書き方だけを使ってください（`docs/specs/0005-beginner-friendly-curriculum.md` の 2.3）。
 2. **ノートを更新日時の古い順にも並べ替えられるようにする** — スキーマ → リポジトリ → 画面の順に、`sort` パラメータを追加します。
 3. **並べ替え問題（`kind: 'ordering'`）を追加する** — 上の実験 2 の続きです。
 4. **パスワード変更機能を追加する** — 現在のパスワードの確認、他のセッションの無効化まで考えてみましょう。

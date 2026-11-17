@@ -1,4 +1,5 @@
 import {
+  CHAPTERS,
   LessonDetailSchema,
   LessonSummarySchema,
   ProgressSummarySchema,
@@ -34,7 +35,13 @@ function correctAnswers(lessonId: string): Answer[] {
   });
 }
 
-const FIRST = 'types-and-inference';
+const FIRST = 'what-is-typescript';
+const SECOND = 'javascript-refresher';
+
+/** レッスンの問題数。進捗の正答率の計算に使います。 */
+function questionCount(lessonId: string): number {
+  return LESSONS.find((lesson) => lesson.id === lessonId)?.questions.length ?? 0;
+}
 
 let client: TestClient;
 
@@ -62,11 +69,11 @@ describe('GET /api/lessons/:lessonId', () => {
   it('本文と問題、前後のレッスンを返す', async () => {
     const { lesson } = await readJson(await client.get(`/api/lessons/${FIRST}`), DetailSchema);
 
-    expect(lesson.title).toBe('型注釈と型推論');
+    expect(lesson.title).toBe('TypeScript とは');
     expect(lesson.body.length).toBeGreaterThan(0);
     expect(lesson.questions.length).toBeGreaterThanOrEqual(2);
     expect(lesson.previousLessonId).toBeNull();
-    expect(lesson.nextLessonId).toBe('functions');
+    expect(lesson.nextLessonId).toBe(SECOND);
   });
 
   it('問題の正解と解説をクライアントに送らない', async () => {
@@ -143,21 +150,21 @@ describe('GET /api/progress', () => {
       streakDays: 0,
       recentAttempts: [],
     });
-    expect(progress.chapters).toHaveLength(4);
+    expect(progress.chapters).toHaveLength(CHAPTERS.length);
   });
 
   it('解答の結果が進捗に反映される', async () => {
-    await client.post(`/api/lessons/${FIRST}/quiz`, { answers: correctAnswers(FIRST) }); // 2/2
-    await client.post('/api/lessons/functions/quiz', { answers: [] }); // 0/2
+    await client.post(`/api/lessons/${FIRST}/quiz`, { answers: correctAnswers(FIRST) }); // 全問正解
+    await client.post(`/api/lessons/${SECOND}/quiz`, { answers: [] }); // 0 問正解
 
     const { progress } = await readJson(await client.get('/api/progress'), ProgressSchema);
     expect(progress).toMatchObject({
       completedLessons: 1,
       totalAttempts: 2,
-      accuracy: 0.5,
+      accuracy: questionCount(FIRST) / (questionCount(FIRST) + questionCount(SECOND)),
       streakDays: 1,
     });
-    expect(progress.chapters[0]).toMatchObject({ chapterId: 'basics', completed: 1 });
+    expect(progress.chapters[0]).toMatchObject({ chapterId: 'intro', completed: 1 });
     expect(progress.recentAttempts).toHaveLength(2);
   });
 

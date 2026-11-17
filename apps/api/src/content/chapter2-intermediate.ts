@@ -8,7 +8,7 @@ export const intermediate: LessonContent[] = [
     summary: '条件分岐によってユニオン型を具体的な型へ絞り込む仕組み。',
     body: [
       p(
-        'ユニオン型の値は、そのままでは全メンバーに共通する操作しかできません。条件分岐で確かめると、TypeScript がそのブロック内の型を自動で絞り込みます。これを narrowing と呼びます。',
+        '第1章の「null・undefined と絞り込みの基本」では、`!== null` や `typeof` で型が絞り込まれることを学びました。ユニオン型の値は、そのままでは全メンバーに共通する操作しかできません。条件分岐で確かめると、TypeScript がそのブロック内の型を自動で絞り込みます。これを narrowing と呼びます。このレッスンでは、オブジェクトの種類を見分ける方法と、絞り込みの関数を自分で作る方法まで広げます。',
       ),
       code(`
 function format(value: string | number): string {

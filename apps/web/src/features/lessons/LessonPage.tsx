@@ -42,11 +42,23 @@ export function LessonPage({ lessonId }: { lessonId: string }) {
       </div>
 
       {lesson.codeRefs.length > 0 && (
-        <section className="mt-10">
-          <h2 className="text-xl font-bold">このアプリでの使用箇所</h2>
-          <p className="mt-1 text-muted-foreground">
-            このレッスンの内容が、実際にこのアプリのソースコードで使われている場所です。
-          </p>
+        // 実務のコードへの案内なので、初心者が読み飛ばせるよう初期状態では閉じておきます。
+        <details className="group mt-10 rounded-lg border px-4 py-3">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+            <h2 className="inline text-lg font-bold">
+              <span
+                aria-hidden="true"
+                className="mr-2 inline-block transition-transform group-open:rotate-90"
+              >
+                ▶
+              </span>
+              発展: このアプリでの使われ方
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              このレッスンの内容が、このアプリのソースコードで実際に使われている場所です。
+              実務のコードなので、はじめは読み飛ばしてかまいません。
+            </p>
+          </summary>
           <ul className="mt-3 grid gap-2.5">
             {lesson.codeRefs.map((ref) => (
               <li key={ref.path} className="grid gap-0.5 rounded-lg border bg-card px-4 py-3">
@@ -59,7 +71,7 @@ export function LessonPage({ lessonId }: { lessonId: string }) {
               </li>
             ))}
           </ul>
-        </section>
+        </details>
       )}
 
       <section className="mt-10">
