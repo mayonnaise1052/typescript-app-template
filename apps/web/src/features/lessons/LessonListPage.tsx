@@ -12,7 +12,9 @@ export function LessonListPage() {
     <>
       <h1 className="text-3xl font-bold">レッスン</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground">
-        基礎から順に進めるのがおすすめです。各レッスンの最後にあるクイズに全問正解すると完了になります。
+        第0章から順に進めるのがおすすめです。TypeScript
+        をはじめて学ぶ人は「はじめに」から、JavaScript
+        に慣れている人は第1章から始めてもかまいません。各レッスンの最後にあるクイズに全問正解すると完了になります。
       </p>
       {CHAPTERS.map((chapter) => {
         const inChapter = lessons.filter((lesson) => lesson.chapterId === chapter.id);

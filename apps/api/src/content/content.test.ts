@@ -34,6 +34,19 @@ describe('教材', () => {
     },
   );
 
+  // 初心者向けの章は、1 レッスンの問題を多めにして練習量を確保します（仕様書 0005 の 2.4）。
+  it.each(
+    LESSONS.filter((lesson) => lesson.chapterId === 'intro' || lesson.chapterId === 'basics').map(
+      (lesson) => [lesson.id, lesson] as const,
+    ),
+  )('%s: 初心者向けの章なので、問題が 3 問以上ある', (_id, lesson) => {
+    expect(lesson.questions.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('第0章から始まる', () => {
+    expect(LESSONS[0]?.chapterId).toBe('intro');
+  });
+
   it('正解が選択肢の範囲外なら検出する', () => {
     const [first] = LESSONS;
     if (!first) throw new Error('レッスンがありません');

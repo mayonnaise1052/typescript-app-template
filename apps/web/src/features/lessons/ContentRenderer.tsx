@@ -27,7 +27,7 @@ function Block({ block }: { block: ContentBlock }) {
           <CodeBlock code={block.code} />
           {block.caption && (
             <figcaption className="mt-1.5 text-sm text-muted-foreground">
-              {block.caption}
+              <RichText text={block.caption} />
             </figcaption>
           )}
         </figure>
