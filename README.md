@@ -97,6 +97,7 @@ docs/                   ドキュメント
 | ファイル                                         | 内容                                                |
 | ------------------------------------------------ | --------------------------------------------------- |
 | [docs/learning-guide.md](docs/learning-guide.md) | TypeScript の各概念が、どのファイルで使われているか |
+| [docs/SPEC.md](docs/SPEC.md)                     | アプリ全体の仕様（画面・API・データ・セキュリティ） |
 | [docs/testing.md](docs/testing.md)               | テストの実行方法・種類・書き方                      |
 | [docs/security.md](docs/security.md)             | 取り入れているセキュリティ対策と、その理由          |
 | [docs/deploy.md](docs/deploy.md)                 | Cloudflare へのデプロイ手順                         |
